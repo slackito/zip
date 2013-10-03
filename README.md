@@ -1,7 +1,8 @@
 # rust-zip
 
-A simple rust library to read and write Zip files. Currently only reading them is supported,
-and it's probably broken :)
+A simple rust library to read and write Zip archives, which is also my pet project for learning Rust.
+At the moment you can list the files in a Zip archive, as well as extracting them if they are either stored
+(uncompressed) or deflated, but I plan to add write support soon.
 
 A simple example
 ----------------
@@ -42,8 +43,9 @@ fn main() {
 TODO
 ----
 
-- Learn Rust
+- Learn more Rust
 - Check CRC32 when extracting files
-- Add support for writing ZIP files
+- Write support
+- Create a proper set of tests
 - Support advanced features (more compression methods, ZIP64, encryption, multiple volumes...)
 
