@@ -9,6 +9,8 @@ use std::iter::range_inclusive;
 use std::str; // TODO: look into std::ascii to see if it's a better fit
 use extra::flate;
 
+mod crc32;
+
 // utility functions
 
 // (year, month, day)
@@ -361,6 +363,8 @@ impl EndOfCentralDirectoryRecord {
 #[deriving(Eq,ToStr)]
 pub enum ZipError {
     NotAZipFile,
+    CrcError,
+    FileNotFoundInArchive
 }
 
 
@@ -474,17 +478,17 @@ impl<T:Reader+Seek> ZipReader<T> {
         result
     }
 
-    pub fn get_file_info(&mut self, name: &str) -> Option<FileInfo> {
+    pub fn get_file_info(&mut self, name: &str) -> Result<FileInfo, ZipError> {
         for i in self.iter() {
             if name.equiv(&i.name) {
-                return Some(i);
+                return Ok(i);
             }
         }
-        None
+        Err(FileNotFoundInArchive)
     }
 
     // TODO: Create a Reader for the cases when you don't want to decompress the whole file
-    pub fn read(&mut self, f: &FileInfo) -> ~[u8] {
+    pub fn read(&mut self, f: &FileInfo) -> Result<~[u8], ZipError> {
         self.reader.seek(f.local_file_header_offset as i64, SeekSet);
         let h = LocalFileHeader::read(&mut self.reader).unwrap();
         let file_offset = f.local_file_header_offset as i64 + h.total_size() as i64;
@@ -496,8 +500,11 @@ impl<T:Reader+Seek> ZipReader<T> {
                 _ => fail!()
             };
 
-        // TODO: Check the CRC32 of the result against the one stored in the header
-        result
+        // Check the CRC32 of the result against the one stored in the header
+        let crc = crc32::crc32(result);
+
+        if crc == h.crc32 { Ok(result) }
+        else { Err(CrcError) }
     }
 
     fn read_stored_file(&mut self, pos: i64, uncompressed_size: u32) -> ~[u8] {
@@ -515,9 +522,11 @@ impl<T:Reader+Seek> ZipReader<T> {
 
     // when we make read return a Reader, we will be able to loop here and copy
     // blocks of a fixed size from Reader to Writer
-    pub fn extract<T:Writer>(&mut self, f: &FileInfo, writer: &mut T) {
-        let bytes = self.read(f);
-        writer.write(bytes);
+    pub fn extract<T:Writer>(&mut self, f: &FileInfo, writer: &mut T) -> Result<(), ZipError> {
+        match self.read(f) {
+            Ok(bytes) => {writer.write(bytes); Ok(())},
+            Err(x) => Err(x)
+        }
     }
 
 }
