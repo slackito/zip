@@ -44,7 +44,6 @@ TODO
 ----
 
 - Learn more Rust
-- Check CRC32 when extracting files
 - Write support
 - Create a proper set of tests
 - Support advanced features (more compression methods, ZIP64, encryption, multiple volumes...)
