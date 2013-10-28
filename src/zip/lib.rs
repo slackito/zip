@@ -4,7 +4,7 @@
 extern mod extra;
 
 use std::rt::io::{Reader, Writer, Seek, SeekSet, SeekEnd};
-use std::rt::io::extensions::{ReaderUtil, ReaderByteConversions};
+//use std::rt::io::extensions::{ReaderUtil, ReaderByteConversions};
 use std::iter::range_inclusive;
 use std::str; // TODO: look into std::ascii to see if it's a better fit
 use extra::flate;
@@ -108,21 +108,21 @@ impl LocalFileHeader {
     fn read<T:Reader>(r: &mut T) -> Result<~LocalFileHeader, ~str> {
         let mut h = LocalFileHeader::new();
 
-        h.signature = r.read_le_u32_();
+        h.signature = r.read_le_u32();
         if h.signature != 0x04034b50 {
             return Err(~"invalid signature");
         }
 
-        h.version_needed_to_extract = r.read_le_u16_();
-        h.general_purpose_bit_flag = r.read_le_u16_();
-        h.compression_method = r.read_le_u16_();
-        h.last_modified_time = r.read_le_u16_();
-        h.last_modified_date = r.read_le_u16_();
-        h.crc32 = r.read_le_u32_();
-        h.compressed_size = r.read_le_u32_();
-        h.uncompressed_size = r.read_le_u32_();
-        h.file_name_length = r.read_le_u16_();
-        h.extra_field_length = r.read_le_u16_();
+        h.version_needed_to_extract = r.read_le_u16();
+        h.general_purpose_bit_flag = r.read_le_u16();
+        h.compression_method = r.read_le_u16();
+        h.last_modified_time = r.read_le_u16();
+        h.last_modified_date = r.read_le_u16();
+        h.crc32 = r.read_le_u32();
+        h.compressed_size = r.read_le_u32();
+        h.uncompressed_size = r.read_le_u32();
+        h.file_name_length = r.read_le_u16();
+        h.extra_field_length = r.read_le_u16();
         h.file_name = str::from_utf8(r.read_bytes(h.file_name_length as uint));
         h.extra_field = r.read_bytes(h.extra_field_length as uint);
 
@@ -134,6 +134,23 @@ impl LocalFileHeader {
         assert!(!h.uses_masking());
 
         Ok(~h)
+    }
+
+    fn write<T:Writer>(&self, w: &mut T) -> Result<(), ~str> {
+        w.write_le_u32(self.signature);
+        w.write_le_u16(self.version_needed_to_extract);
+        w.write_le_u16(self.general_purpose_bit_flag);
+        w.write_le_u16(self.compression_method);
+        w.write_le_u16(self.last_modified_time);
+        w.write_le_u16(self.last_modified_date);
+        w.write_le_u32(self.crc32);
+        w.write_le_u32(self.compressed_size);
+        w.write_le_u32(self.uncompressed_size);
+        w.write_le_u16(self.file_name_length);
+        w.write_le_u16(self.extra_field_length);
+        w.write(self.file_name.as_bytes());
+        w.write(self.extra_field);
+        Ok(())
     }
 
     // for debug purposes
@@ -242,27 +259,27 @@ impl CentralDirectoryHeader {
     fn read<T:Reader>(r: &mut T) -> Result<~CentralDirectoryHeader, ~str> {
         let mut h = CentralDirectoryHeader::new();
 
-        h.signature = r.read_le_u32_();
+        h.signature = r.read_le_u32();
         if h.signature != 0x02014b50 {
             return Err(~"invalid signature");
         }
 
-        h.version_made_by = r.read_le_u16_();
-        h.version_needed_to_extract = r.read_le_u16_();
-        h.general_purpose_bit_flag = r.read_le_u16_();
-        h.compression_method = r.read_le_u16_();
-        h.last_modified_time = r.read_le_u16_();
-        h.last_modified_date = r.read_le_u16_();
-        h.crc32 = r.read_le_u32_();
-        h.compressed_size = r.read_le_u32_();
-        h.uncompressed_size = r.read_le_u32_();
-        h.file_name_length = r.read_le_u16_();
-        h.extra_field_length = r.read_le_u16_();
-        h.file_comment_length = r.read_le_u16_();
-        h.disk_number_start = r.read_le_u16_();
-        h.internal_file_attributes = r.read_le_u16_();
-        h.external_file_attributes = r.read_le_u32_();
-        h.relative_offset_of_local_header = r.read_le_u32_();
+        h.version_made_by = r.read_le_u16();
+        h.version_needed_to_extract = r.read_le_u16();
+        h.general_purpose_bit_flag = r.read_le_u16();
+        h.compression_method = r.read_le_u16();
+        h.last_modified_time = r.read_le_u16();
+        h.last_modified_date = r.read_le_u16();
+        h.crc32 = r.read_le_u32();
+        h.compressed_size = r.read_le_u32();
+        h.uncompressed_size = r.read_le_u32();
+        h.file_name_length = r.read_le_u16();
+        h.extra_field_length = r.read_le_u16();
+        h.file_comment_length = r.read_le_u16();
+        h.disk_number_start = r.read_le_u16();
+        h.internal_file_attributes = r.read_le_u16();
+        h.external_file_attributes = r.read_le_u32();
+        h.relative_offset_of_local_header = r.read_le_u32();
         h.file_name = str::from_utf8(r.read_bytes(h.file_name_length as uint));
         h.extra_field = r.read_bytes(h.extra_field_length as uint);
         h.file_comment = str::from_utf8(r.read_bytes(h.file_comment_length as uint));
@@ -272,6 +289,31 @@ impl CentralDirectoryHeader {
 
         Ok(~h)
     }
+
+    fn write<T:Writer>(&self, w: &mut T) -> Result<(), ~str> {
+        w.write_le_u32(self.signature);
+        w.write_le_u16(self.version_made_by);
+        w.write_le_u16(self.version_needed_to_extract);
+        w.write_le_u16(self.general_purpose_bit_flag);
+        w.write_le_u16(self.compression_method);
+        w.write_le_u16(self.last_modified_time);
+        w.write_le_u16(self.last_modified_date);
+        w.write_le_u32(self.crc32);
+        w.write_le_u32(self.compressed_size);
+        w.write_le_u32(self.uncompressed_size);
+        w.write_le_u16(self.file_name_length);
+        w.write_le_u16(self.extra_field_length);
+        w.write_le_u16(self.file_comment_length);
+        w.write_le_u16(self.disk_number_start);
+        w.write_le_u16(self.internal_file_attributes);
+        w.write_le_u32(self.external_file_attributes);
+        w.write_le_u32(self.relative_offset_of_local_header);
+        w.write(self.file_name.as_bytes());
+        w.write(self.extra_field);
+        w.write(self.file_comment.as_bytes());
+        Ok(())
+    }
+
 
     // fills a FileInfo struct with the file properties, for users of the external API to see
     fn to_file_info(&self) -> FileInfo {
@@ -333,25 +375,38 @@ impl EndOfCentralDirectoryRecord {
     fn read<T:Reader>(r: &mut T) -> Result<~EndOfCentralDirectoryRecord, ~str> {
         let mut h = EndOfCentralDirectoryRecord::new();
 
-        h.signature = r.read_le_u32_();
+        h.signature = r.read_le_u32();
         
         if h.signature != 0x06054b50 {
             return Err(~"invalid signature");
         }
 
-        h.disk_number = r.read_le_u16_();
-        h.disk_number_with_start_of_central_directory = r.read_le_u16_();
-        h.entry_count_this_disk = r.read_le_u16_();
-        h.total_entry_count = r.read_le_u16_();
-        h.central_directory_size = r.read_le_u32_();
-        h.central_directory_offset = r.read_le_u32_();
-        h.comment_length = r.read_le_u16_();
+        h.disk_number = r.read_le_u16();
+        h.disk_number_with_start_of_central_directory = r.read_le_u16();
+        h.entry_count_this_disk = r.read_le_u16();
+        h.total_entry_count = r.read_le_u16();
+        h.central_directory_size = r.read_le_u32();
+        h.central_directory_offset = r.read_le_u32();
+        h.comment_length = r.read_le_u16();
         h.comment = str::from_utf8(r.read_bytes(h.comment_length as uint));
 
         // check for some things we don't support (yet?)
         // TODO
 
         Ok(~h)
+    }
+
+    fn write<T:Writer>(&self, w: &mut T) -> Result<(), ~str> {
+        w.write_le_u32(self.signature);
+        w.write_le_u16(self.disk_number);
+        w.write_le_u16(self.disk_number_with_start_of_central_directory);
+        w.write_le_u16(self.entry_count_this_disk);
+        w.write_le_u16(self.total_entry_count);
+        w.write_le_u32(self.central_directory_size);
+        w.write_le_u32(self.central_directory_offset);
+        w.write_le_u16(self.comment_length);
+        w.write(self.comment.as_bytes());
+        Ok(())
     }
 
 }
@@ -434,7 +489,7 @@ impl<T:Reader+Seek> ZipReader<T> {
             let offset = file_size - i;
             r.seek(offset as i64, SeekSet);
             
-            let sig = r.read_le_u32_();
+            let sig = r.read_le_u32();
 
             // TODO: check for false positives here
             if (sig == 0x06054b50) {
