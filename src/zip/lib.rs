@@ -71,7 +71,7 @@ struct LocalFileHeader {
     uncompressed_size:         u32,
     file_name_length:          u16,
     extra_field_length:        u16,
-    file_name:                 StrBuf,
+    file_name:                 String,
     extra_field:               Vec<u8>
 }
 
@@ -105,7 +105,7 @@ impl LocalFileHeader {
             uncompressed_size: 0,
             file_name_length: 0,
             extra_field_length: 0,
-            file_name: StrBuf::new(),
+            file_name: String::new(),
             extra_field: Vec::new()
         }
     }
@@ -214,9 +214,9 @@ struct CentralDirectoryHeader {
     internal_file_attributes: u16,
     external_file_attributes: u32,
     relative_offset_of_local_header: u32,
-    file_name: StrBuf,
+    file_name: String,
     extra_field: Vec<u8>,
-    file_comment: StrBuf,
+    file_comment: String,
 }
 
 impl CentralDirectoryHeader {
@@ -255,9 +255,9 @@ impl CentralDirectoryHeader {
             internal_file_attributes: 0,
             external_file_attributes: 0,
             relative_offset_of_local_header: 0,
-            file_name: StrBuf::new(),
+            file_name: String::new(),
             extra_field: Vec::new(),
-            file_comment: StrBuf::new(),
+            file_comment: String::new(),
         }
     }
 
@@ -360,7 +360,7 @@ struct EndOfCentralDirectoryRecord {
     central_directory_size: u32,
     central_directory_offset: u32,
     comment_length: u16,
-    comment: StrBuf
+    comment: String
 }
 
 impl EndOfCentralDirectoryRecord {
@@ -374,7 +374,7 @@ impl EndOfCentralDirectoryRecord {
             central_directory_size: 0,
             central_directory_offset: 0,
             comment_length: 0,
-            comment: StrBuf::new()
+            comment: String::new()
         }
     }
 
@@ -454,7 +454,7 @@ fn u16_to_CompressionMethod(x: u16) -> CompressionMethod {
 
 #[deriving(Clone)]
 pub struct FileInfo {
-    pub name:               StrBuf,
+    pub name:               String,
     pub compression_method: CompressionMethod,
     pub last_modified_time: (int, int, int), // (hour, minute, second)
     pub last_modified_date: (int, int, int), // (year, month, day)
@@ -539,7 +539,7 @@ impl<T:Reader+Seek> ZipReader<T> {
         result
     }
 
-    pub fn namelist(&mut self) -> Vec<StrBuf> {
+    pub fn namelist(&mut self) -> Vec<String> {
         let mut result = Vec::new();
         for info in self.iter() {
             result.push(info.name.clone());
