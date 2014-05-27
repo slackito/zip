@@ -59,8 +59,9 @@ fn invalid_signature<T>() -> IoResult<T> {
 
 // ==== LOCAL FILE HEADER ====
 
+static LFH_SIGNATURE: u32 = 0x04034b50;
+
 struct LocalFileHeader {
-    signature:                 u32, // 0x04034b50
     version_needed_to_extract: u16,
     general_purpose_bit_flag:  u16,
     compression_method:        u16,
@@ -94,7 +95,6 @@ impl LocalFileHeader {
     // -- constructors
     fn new() -> LocalFileHeader {
         LocalFileHeader{
-            signature: 0,
             version_needed_to_extract: 0,
             general_purpose_bit_flag: 0,
             compression_method: 0,
@@ -114,8 +114,7 @@ impl LocalFileHeader {
     fn read<T:Reader>(r: &mut T) -> IoResult<LocalFileHeader> {
         let mut h = LocalFileHeader::new();
 
-        h.signature = try!(r.read_le_u32());
-        if h.signature != 0x04034b50 {
+        if try!(r.read_le_u32()) != LFH_SIGNATURE {
             return invalid_signature();
         }
 
@@ -143,7 +142,7 @@ impl LocalFileHeader {
     }
 
     fn write<T:Writer>(&self, w: &mut T) -> IoResult<()> {
-        try!(w.write_le_u32(self.signature));
+        try!(w.write_le_u32(LFH_SIGNATURE));
         try!(w.write_le_u16(self.version_needed_to_extract));
         try!(w.write_le_u16(self.general_purpose_bit_flag));
         try!(w.write_le_u16(self.compression_method));
@@ -161,7 +160,6 @@ impl LocalFileHeader {
 
     // for debug purposes
     fn print(&self) {
-        println!("signature: {:#08x}", self.signature);
         println!("version_needed_to_extract: {:#04x}", self.version_needed_to_extract);
         println!("general_purpose_bit_flag: {:#04x}", self.general_purpose_bit_flag);
         println!("compression_method: {:#04x}", self.compression_method);
@@ -187,8 +185,11 @@ impl LocalFileHeader {
 
 // TODO: Add support for data descriptor section after the file contents (typically used when the zip file
 // writer doesn't know the file size beforehand, because it's receiving a stream of data or something)
+
+static DD_SIGNATURE: u32 = 0x08074b50;
+
 struct DataDescriptor {
-    signature: u32, // optional: 0x08074b50
+    signature_present: bool, // not standard but sometimes present
     crc32: u32,
     compressed_size: u32,
     uncompressed_size: u32,
@@ -196,8 +197,9 @@ struct DataDescriptor {
 
 // ==== CENTRAL DIRECTORY HEADER ====
 
+static CDH_SIGNATURE: u32 = 0x02014b50;
+
 struct CentralDirectoryHeader {
-    signature: u32, // 0x02014b50
     version_made_by: u16,
     version_needed_to_extract: u16,
     general_purpose_bit_flag: u16,
@@ -238,7 +240,6 @@ impl CentralDirectoryHeader {
 
     fn new() -> CentralDirectoryHeader {
         CentralDirectoryHeader {
-            signature: 0,
             version_made_by: 0,
             version_needed_to_extract: 0,
             general_purpose_bit_flag: 0,
@@ -265,8 +266,7 @@ impl CentralDirectoryHeader {
     fn read<T:Reader>(r: &mut T) -> IoResult<CentralDirectoryHeader> {
         let mut h = CentralDirectoryHeader::new();
 
-        h.signature = try!(r.read_le_u32());
-        if h.signature != 0x02014b50 {
+        if try!(r.read_le_u32()) != CDH_SIGNATURE {
             return invalid_signature();
         }
 
@@ -297,7 +297,7 @@ impl CentralDirectoryHeader {
     }
 
     fn write<T:Writer>(&self, w: &mut T) -> IoResult<()> {
-        try!(w.write_le_u32(self.signature));
+        try!(w.write_le_u32(CDH_SIGNATURE));
         try!(w.write_le_u16(self.version_made_by));
         try!(w.write_le_u16(self.version_needed_to_extract));
         try!(w.write_le_u16(self.general_purpose_bit_flag));
@@ -342,8 +342,9 @@ impl CentralDirectoryHeader {
 
 }
 
+static CDDS_SIGNATURE: u32 = 0x05054b50;
+
 struct CentralDirectoryDigitalSignature {
-    signature: u32, // 0x05054b50
     data_size: u16,
     data: Vec<u8>
 }
@@ -351,8 +352,9 @@ struct CentralDirectoryDigitalSignature {
 
 // ==== END OF CENTRAL DIRECTORY RECORD ====
 
+static EOCDR_SIGNATURE: u32 = 0x06054b50;
+
 struct EndOfCentralDirectoryRecord {
-    signature: u32, // 0x06054b50
     disk_number: u16,
     disk_number_with_start_of_central_directory: u16,
     entry_count_this_disk: u16,
@@ -366,7 +368,6 @@ struct EndOfCentralDirectoryRecord {
 impl EndOfCentralDirectoryRecord {
     fn new() -> EndOfCentralDirectoryRecord {
         EndOfCentralDirectoryRecord {
-            signature: 0,
             disk_number: 0,
             disk_number_with_start_of_central_directory: 0,
             entry_count_this_disk: 0,
@@ -381,9 +382,7 @@ impl EndOfCentralDirectoryRecord {
     fn read<T:Reader>(r: &mut T) -> IoResult<EndOfCentralDirectoryRecord> {
         let mut h = EndOfCentralDirectoryRecord::new();
 
-        h.signature = try!(r.read_le_u32());
-        
-        if h.signature != 0x06054b50 {
+        if try!(r.read_le_u32()) != EOCDR_SIGNATURE {
             return invalid_signature();
         }
 
@@ -403,7 +402,7 @@ impl EndOfCentralDirectoryRecord {
     }
 
     fn write<T:Writer>(&self, w: &mut T) -> IoResult<()> {
-        try!(w.write_le_u32(self.signature));
+        try!(w.write_le_u32(EOCDR_SIGNATURE));
         try!(w.write_le_u16(self.disk_number));
         try!(w.write_le_u16(self.disk_number_with_start_of_central_directory));
         try!(w.write_le_u16(self.entry_count_this_disk));
@@ -506,7 +505,7 @@ impl<T:Reader+Seek> ZipReader<T> {
             let sig = try!(io_result_to_zip_result(r.read_le_u32()));
 
             // TODO: check for false positives here
-            if (sig == 0x06054b50) {
+            if (sig == EOCDR_SIGNATURE) {
                 end_record_offset = Some(offset);
                 break;
             }
