@@ -1,9 +1,26 @@
-/// Internal format stuffs.
+//! Internal format stuffs.
 
 use std::io::{IoResult, IoError, InvalidInput};
-use std::str; // TODO: look into std::ascii to see if it's a better fit
 use std::fmt;
+use maybe_utf8::MaybeUTF8;
 
+fn invalid_signature<T>() -> IoResult<T> {
+    Err(IoError { kind: InvalidInput, desc: "invalid signature", detail: None })
+}
+
+fn maybe_force_utf8(force: bool, v: Vec<u8>) -> IoResult<MaybeUTF8> {
+    if force {
+        match String::from_utf8(v) {
+            Ok(s) => Ok(MaybeUTF8::from_str(s)),
+            Err(_) => Err(IoError { kind: InvalidInput, desc: "invalid UTF-8 sequence", detail: None }),
+        }
+    } else {
+        Ok(MaybeUTF8::from_bytes(v))
+    }
+}
+
+/// An MS-DOS date and time format.
+/// This is not very accurate (2-second granularity), nor guaranteed to be valid.
 #[deriving(Clone)]
 pub struct MsdosDateTime {
     time: u16,
@@ -60,10 +77,6 @@ impl fmt::Show for MsdosDateTime {
     }
 }
 
-fn invalid_signature<T>() -> IoResult<T> {
-    Err(IoError { kind: InvalidInput, desc: "invalid signature", detail: None })
-}
-
 //  http://www.pkware.com/documents/casestudies/APPNOTE.TXT
 //
 //  4.3.6 Overall .ZIP file format:
@@ -105,7 +118,7 @@ pub struct LocalFileHeader {
     pub uncompressed_size:         u32,
     pub file_name_length:          u16,
     pub extra_field_length:        u16,
-    pub file_name:                 String,
+    pub file_name:                 MaybeUTF8,
     pub extra_field:               Vec<u8>
 }
 
@@ -137,7 +150,7 @@ impl LocalFileHeader {
             uncompressed_size: 0,
             file_name_length: 0,
             extra_field_length: 0,
-            file_name: String::new(),
+            file_name: MaybeUTF8::new(),
             extra_field: Vec::new()
         }
     }
@@ -159,7 +172,8 @@ impl LocalFileHeader {
         h.uncompressed_size = try!(r.read_le_u32());
         h.file_name_length = try!(r.read_le_u16());
         h.extra_field_length = try!(r.read_le_u16());
-        h.file_name = str::from_utf8_owned(try!(r.read_exact(h.file_name_length as uint))).unwrap();
+        h.file_name = try!(maybe_force_utf8(h.has_UTF8_name(),
+                                            try!(r.read_exact(h.file_name_length as uint))));
         h.extra_field = try!(r.read_exact(h.extra_field_length as uint));
 
         // check for some things we don't support (yet?)
@@ -244,9 +258,9 @@ pub struct CentralDirectoryHeader {
     pub internal_file_attributes: u16,
     pub external_file_attributes: u32,
     pub relative_offset_of_local_header: u32,
-    pub file_name: String,
+    pub file_name: MaybeUTF8,
     pub extra_field: Vec<u8>,
-    pub file_comment: String,
+    pub file_comment: MaybeUTF8,
 }
 
 impl CentralDirectoryHeader {
@@ -283,9 +297,9 @@ impl CentralDirectoryHeader {
             internal_file_attributes: 0,
             external_file_attributes: 0,
             relative_offset_of_local_header: 0,
-            file_name: String::new(),
+            file_name: MaybeUTF8::new(),
             extra_field: Vec::new(),
-            file_comment: String::new(),
+            file_comment: MaybeUTF8::new(),
         }
     }
 
@@ -312,9 +326,11 @@ impl CentralDirectoryHeader {
         h.internal_file_attributes = try!(r.read_le_u16());
         h.external_file_attributes = try!(r.read_le_u32());
         h.relative_offset_of_local_header = try!(r.read_le_u32());
-        h.file_name = str::from_utf8_owned(try!(r.read_exact(h.file_name_length as uint))).unwrap();
+        h.file_name = try!(maybe_force_utf8(h.has_UTF8_name(),
+                                            try!(r.read_exact(h.file_name_length as uint))));
         h.extra_field = try!(r.read_exact(h.extra_field_length as uint));
-        h.file_comment = str::from_utf8_owned(try!(r.read_exact(h.file_comment_length as uint))).unwrap();
+        h.file_comment = try!(maybe_force_utf8(h.has_UTF8_name(),
+                                               try!(r.read_exact(h.file_comment_length as uint))));
 
         // check for some things we don't support (yet?)
         // TODO
@@ -366,7 +382,7 @@ pub struct EndOfCentralDirectoryRecord {
     pub central_directory_size: u32,
     pub central_directory_offset: u32,
     pub comment_length: u16,
-    pub comment: String
+    pub comment: Vec<u8>, // no encoding provision
 }
 
 impl EndOfCentralDirectoryRecord {
@@ -379,7 +395,7 @@ impl EndOfCentralDirectoryRecord {
             central_directory_size: 0,
             central_directory_offset: 0,
             comment_length: 0,
-            comment: String::new()
+            comment: Vec::new()
         }
     }
 
@@ -397,7 +413,7 @@ impl EndOfCentralDirectoryRecord {
         h.central_directory_size = try!(r.read_le_u32());
         h.central_directory_offset = try!(r.read_le_u32());
         h.comment_length = try!(r.read_le_u16());
-        h.comment = str::from_utf8_owned(try!(r.read_exact(h.comment_length as uint))).unwrap();
+        h.comment = try!(r.read_exact(h.comment_length as uint));
 
         // check for some things we don't support (yet?)
         // TODO
@@ -414,7 +430,7 @@ impl EndOfCentralDirectoryRecord {
         try!(w.write_le_u32(self.central_directory_size));
         try!(w.write_le_u32(self.central_directory_offset));
         try!(w.write_le_u16(self.comment_length));
-        try!(w.write(self.comment.as_bytes()));
+        try!(w.write(self.comment.as_slice()));
         Ok(())
     }
 

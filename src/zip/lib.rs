@@ -9,8 +9,11 @@ extern crate flate;
 use std::io::{Reader, Writer, Seek, SeekSet, SeekEnd};
 use std::io::{IoResult, IoError, InvalidInput};
 use std::iter::range_inclusive;
+use std::path::BytesContainer;
+use maybe_utf8::MaybeUTF8;
 
 mod crc32;
+pub mod maybe_utf8;
 pub mod format;
 
 
@@ -47,7 +50,7 @@ fn u16_to_CompressionMethod(x: u16) -> CompressionMethod {
 
 #[deriving(Clone)]
 pub struct FileInfo {
-    pub name:               String,
+    pub name:               MaybeUTF8,
     pub compression_method: CompressionMethod,
     // (year, month, day, hour, minute, second)
     pub last_modified_datetime: (uint, uint, uint, uint, uint, uint),
@@ -152,7 +155,7 @@ impl<T:Reader+Seek> ZipReader<T> {
         result
     }
 
-    pub fn namelist(&mut self) -> Vec<String> {
+    pub fn namelist(&mut self) -> Vec<MaybeUTF8> {
         let mut result = Vec::new();
         for info in self.iter() {
             result.push(info.name.clone());
@@ -160,9 +163,9 @@ impl<T:Reader+Seek> ZipReader<T> {
         result
     }
 
-    pub fn get_file_info(&mut self, name: &str) -> Result<FileInfo, ZipError> {
+    pub fn get_file_info<T:BytesContainer>(&mut self, name: T) -> Result<FileInfo, ZipError> {
         for i in self.iter() {
-            if name.equiv(&i.name) {
+            if i.name.equiv(&name) {
                 return Ok(i);
             }
         }
