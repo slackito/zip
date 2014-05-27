@@ -93,7 +93,7 @@ pub struct ZipReaderIterator<'a, T> {
 
 impl<'a, T:Reader+Seek> Iterator<FileInfo> for ZipReaderIterator<'a, T> {
     fn next(&mut self) -> Option<FileInfo> {
-        if (self.current_entry < self.zip_reader.end_record.total_entry_count) {
+        if self.current_entry < self.zip_reader.end_record.total_entry_count {
             self.zip_reader.reader.seek(self.current_offset as i64, SeekSet);
             let h = format::CentralDirectoryHeader::read(&mut self.zip_reader.reader).unwrap();
             let info = FileInfo::from_cdh(&h);
@@ -120,7 +120,7 @@ impl<T:Reader+Seek> ZipReader<T> {
             let sig = try!(io_result_to_zip_result(r.read_le_u32()));
 
             // TODO: check for false positives here
-            if (sig == format::EOCDR_SIGNATURE) {
+            if sig == format::EOCDR_SIGNATURE {
                 end_record_offset = Some(offset);
                 break;
             }
@@ -129,7 +129,7 @@ impl<T:Reader+Seek> ZipReader<T> {
 
         match end_record_offset {
             Some(offset) => {
-                r.seek(offset as i64, SeekSet);
+                try!(io_result_to_zip_result(r.seek(offset as i64, SeekSet)));
                 let e = format::EndOfCentralDirectoryRecord::read(&mut r).unwrap();
                 Ok(ZipReader {reader: r, end_record: e})
             },
@@ -172,7 +172,7 @@ impl<T:Reader+Seek> ZipReader<T> {
 
     // TODO: Create a Reader for the cases when you don't want to decompress the whole file
     pub fn read(&mut self, f: &FileInfo) -> Result<Vec<u8>, ZipError> {
-        self.reader.seek(f.local_file_header_offset as i64, SeekSet);
+        try!(io_result_to_zip_result(self.reader.seek(f.local_file_header_offset as i64, SeekSet)));
         let h = format::LocalFileHeader::read(&mut self.reader).unwrap();
         let file_offset = f.local_file_header_offset as i64 + h.total_size() as i64;
 
@@ -212,7 +212,7 @@ impl<T:Reader+Seek> ZipReader<T> {
     // blocks of a fixed size from Reader to Writer
     pub fn extract<T:Writer>(&mut self, f: &FileInfo, writer: &mut T) -> Result<(), ZipError> {
         match self.read(f) {
-            Ok(bytes) => {writer.write(bytes.as_slice()); Ok(())},
+            Ok(bytes) => io_result_to_zip_result(writer.write(bytes.as_slice())),
             Err(x) => Err(x)
         }
     }
