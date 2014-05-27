@@ -22,8 +22,7 @@ fn main() {
 
     // list files in archive
     for i in z.iter() {
-        let (year, month, day) = i.last_modified_date;
-        let (hour, minute, second) = i.last_modified_time;
+        let (year, month, day, hour, minute, second) = i.last_modified_datetime;
         println!("{} => {} bytes, {} bytes compressed, last modified: {}/{}/{} {}:{}:{}, encrypted: {}, CRC32={:#08x}",
             i.name, i.uncompressed_size, i.compressed_size, year, month, day, hour, minute, second, i.is_encrypted, i.crc32);
     }

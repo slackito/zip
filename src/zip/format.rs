@@ -1,20 +1,63 @@
 /// Internal format stuffs.
 
-use std::io::{Reader, Writer};
 use std::io::{IoResult, IoError, InvalidInput};
 use std::str; // TODO: look into std::ascii to see if it's a better fit
+use std::fmt;
 
-// utility functions
-
-// (year, month, day)
-pub fn decode_msdos_date(date: u16) -> (int, int, int) {
-    let d = date as int;
-    ((d >> 9) + 1980, (d>>5) & 0xF, d & 0x1F)
+#[deriving(Clone)]
+pub struct MsdosDateTime {
+    time: u16,
+    date: u16,
 }
-// (hour, minute, second)
-pub fn decode_msdos_time(time: u16) -> (int, int, int) {
-    let t = time as int;
-    ((t >> 11) & 0x1F, (t >> 5) & 0x3F, t & 0x1F)
+
+impl MsdosDateTime {
+    pub fn new(year: uint, month: uint, day: uint,
+               hour: uint, minute: uint, second: uint) -> MsdosDateTime {
+        // XXX no strict error check
+        let year = year - 1980;
+        MsdosDateTime {
+            time: (((hour & 0b11111) << 11) |
+                   ((minute & 0b111111) << 5) |
+                   ((second & 0b111111) >> 1)) as u16,
+            date: (((year & 0b1111111) << 9) |
+                   ((month & 0b1111) << 5) |
+                   (day & 0b11111)) as u16,
+        }
+    }
+
+    pub fn zero() -> MsdosDateTime {
+        MsdosDateTime { time: 0, date: 0 }
+    }
+
+    pub fn year  (&self) -> uint { ((self.date >>  9) & 0b1111111) as uint + 1980 }
+    pub fn month (&self) -> uint { ((self.date >>  5) &    0b1111) as uint }
+    pub fn day   (&self) -> uint { ( self.date        &   0b11111) as uint }
+    pub fn hour  (&self) -> uint { ((self.time >> 11) &   0b11111) as uint }
+    pub fn minute(&self) -> uint { ((self.time >>  5) &  0b111111) as uint }
+    pub fn second(&self) -> uint { ((self.time <<  1) &  0b111111) as uint }
+
+    pub fn to_tuple(&self) -> (uint, uint, uint, uint, uint, uint) {
+        (self.year(), self.month(), self.day(), self.hour(), self.minute(), self.second())
+    }
+
+    pub fn read<T:Reader>(r: &mut T) -> IoResult<MsdosDateTime> {
+        let time = try!(r.read_le_u16());
+        let date = try!(r.read_le_u16());
+        Ok(MsdosDateTime { time: time, date: date })
+    }
+
+    pub fn write<T:Writer>(&self, w: &mut T) -> IoResult<()> {
+        try!(w.write_le_u16(self.time));
+        try!(w.write_le_u16(self.date));
+        Ok(())
+    }
+}
+
+impl fmt::Show for MsdosDateTime {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}-{:02}-{:02} {:02}:{:02}:{:02}",
+               self.year(), self.month(), self.day(), self.hour(), self.minute(), self.second())
+    }
 }
 
 fn invalid_signature<T>() -> IoResult<T> {
@@ -56,8 +99,7 @@ pub struct LocalFileHeader {
     pub version_needed_to_extract: u16,
     pub general_purpose_bit_flag:  u16,
     pub compression_method:        u16,
-    pub last_modified_time:        u16,
-    pub last_modified_date:        u16,
+    pub last_modified_datetime:    MsdosDateTime,
     pub crc32:                     u32,
     pub compressed_size:           u32,
     pub uncompressed_size:         u32,
@@ -89,8 +131,7 @@ impl LocalFileHeader {
             version_needed_to_extract: 0,
             general_purpose_bit_flag: 0,
             compression_method: 0,
-            last_modified_time: 0,
-            last_modified_date: 0,
+            last_modified_datetime: MsdosDateTime::zero(),
             crc32: 0,
             compressed_size: 0,
             uncompressed_size: 0,
@@ -112,8 +153,7 @@ impl LocalFileHeader {
         h.version_needed_to_extract = try!(r.read_le_u16());
         h.general_purpose_bit_flag = try!(r.read_le_u16());
         h.compression_method = try!(r.read_le_u16());
-        h.last_modified_time = try!(r.read_le_u16());
-        h.last_modified_date = try!(r.read_le_u16());
+        h.last_modified_datetime = try!(MsdosDateTime::read(r));
         h.crc32 = try!(r.read_le_u32());
         h.compressed_size = try!(r.read_le_u32());
         h.uncompressed_size = try!(r.read_le_u32());
@@ -137,8 +177,7 @@ impl LocalFileHeader {
         try!(w.write_le_u16(self.version_needed_to_extract));
         try!(w.write_le_u16(self.general_purpose_bit_flag));
         try!(w.write_le_u16(self.compression_method));
-        try!(w.write_le_u16(self.last_modified_time));
-        try!(w.write_le_u16(self.last_modified_date));
+        try!(self.last_modified_datetime.write(w));
         try!(w.write_le_u32(self.crc32));
         try!(w.write_le_u32(self.compressed_size));
         try!(w.write_le_u32(self.uncompressed_size));
@@ -154,8 +193,7 @@ impl LocalFileHeader {
         println!("version_needed_to_extract: {:#04x}", self.version_needed_to_extract);
         println!("general_purpose_bit_flag: {:#04x}", self.general_purpose_bit_flag);
         println!("compression_method: {:#04x}", self.compression_method);
-        println!("last_modified_time: {:?}", decode_msdos_time(self.last_modified_time));
-        println!("last_modified_date: {:?}", decode_msdos_date(self.last_modified_date)); 
+        println!("last_modified_datetime: {}", self.last_modified_datetime);
         println!("crc32: {:#08x}", self.crc32);
         println!("compressed_size: {}", self.compressed_size);
         println!("uncompressed_size: {}", self.uncompressed_size);
@@ -195,8 +233,7 @@ pub struct CentralDirectoryHeader {
     pub version_needed_to_extract: u16,
     pub general_purpose_bit_flag: u16,
     pub compression_method: u16,
-    pub last_modified_time: u16,
-    pub last_modified_date: u16,
+    pub last_modified_datetime: MsdosDateTime,
     pub crc32: u32,
     pub compressed_size: u32,
     pub uncompressed_size: u32,
@@ -235,8 +272,7 @@ impl CentralDirectoryHeader {
             version_needed_to_extract: 0,
             general_purpose_bit_flag: 0,
             compression_method: 0,
-            last_modified_time: 0,
-            last_modified_date: 0,
+            last_modified_datetime: MsdosDateTime::zero(),
             crc32: 0,
             compressed_size: 0,
             uncompressed_size: 0,
@@ -265,8 +301,7 @@ impl CentralDirectoryHeader {
         h.version_needed_to_extract = try!(r.read_le_u16());
         h.general_purpose_bit_flag = try!(r.read_le_u16());
         h.compression_method = try!(r.read_le_u16());
-        h.last_modified_time = try!(r.read_le_u16());
-        h.last_modified_date = try!(r.read_le_u16());
+        h.last_modified_datetime = try!(MsdosDateTime::read(r));
         h.crc32 = try!(r.read_le_u32());
         h.compressed_size = try!(r.read_le_u32());
         h.uncompressed_size = try!(r.read_le_u32());
@@ -293,8 +328,7 @@ impl CentralDirectoryHeader {
         try!(w.write_le_u16(self.version_needed_to_extract));
         try!(w.write_le_u16(self.general_purpose_bit_flag));
         try!(w.write_le_u16(self.compression_method));
-        try!(w.write_le_u16(self.last_modified_time));
-        try!(w.write_le_u16(self.last_modified_date));
+        try!(self.last_modified_datetime.write(w));
         try!(w.write_le_u32(self.crc32));
         try!(w.write_le_u32(self.compressed_size));
         try!(w.write_le_u32(self.uncompressed_size));

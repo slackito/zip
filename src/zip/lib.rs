@@ -49,8 +49,8 @@ fn u16_to_CompressionMethod(x: u16) -> CompressionMethod {
 pub struct FileInfo {
     pub name:               String,
     pub compression_method: CompressionMethod,
-    pub last_modified_time: (int, int, int), // (hour, minute, second)
-    pub last_modified_date: (int, int, int), // (year, month, day)
+    // (year, month, day, hour, minute, second)
+    pub last_modified_datetime: (uint, uint, uint, uint, uint, uint),
     pub crc32:              u32,
     pub compressed_size:    u32,
     pub uncompressed_size:  u32,
@@ -69,8 +69,7 @@ impl FileInfo {
         FileInfo {
             name:               h.file_name.clone(),
             compression_method: method,
-            last_modified_time: format::decode_msdos_time(h.last_modified_time),
-            last_modified_date: format::decode_msdos_date(h.last_modified_date),
+            last_modified_datetime: h.last_modified_datetime.to_tuple(),
             crc32:              h.crc32,
             compressed_size:    h.compressed_size,
             uncompressed_size:  h.uncompressed_size,
