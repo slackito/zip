@@ -11,7 +11,10 @@ pub enum ZipError {
     IoError(IoError),
     NotAZipFile,
     CrcError,
-    FileNotFoundInArchive
+    FileNotFoundInArchive,
+    InvalidSignature,
+    NonUTF8Field,
+    TooLongField,
 }
 
 impl fmt::Show for ZipError {
@@ -21,6 +24,9 @@ impl fmt::Show for ZipError {
             NotAZipFile => "not a ZIP file".fmt(f),
             CrcError => "CRC mismatch".fmt(f),
             FileNotFoundInArchive => "file not found in archive".fmt(f),
+            InvalidSignature => "invalid ZIP signature".fmt(f),
+            NonUTF8Field => "file name or comment is set to UTF-8 encoded but it isn't".fmt(f),
+            TooLongField => "file name, comment or extra field is too long (> 64KB)".fmt(f),
         }
     }
 }
