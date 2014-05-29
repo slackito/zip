@@ -225,7 +225,7 @@ impl LocalFileHeader {
         println!("compressed_size: {}", self.compressed_size);
         println!("uncompressed_size: {}", self.uncompressed_size);
         println!("file_name: {}", self.file_name);
-        println!("extra_field: {:?}", self.extra_field);
+        println!("extra_field: {}", self.extra_field);
 
         println!("FLAGS: ");
         println!("  is encrypted: {}", self.is_encrypted());
