@@ -146,7 +146,7 @@ impl LocalFileHeader {
     pub fn has_data_descriptor(&self) -> bool        { (self.general_purpose_bit_flag &    8) != 0 }
     pub fn is_compressed_patched_data(&self) -> bool { (self.general_purpose_bit_flag &   32) != 0 }
     pub fn uses_strong_encryption(&self) -> bool     { (self.general_purpose_bit_flag &   64) != 0 }
-    pub fn has_UTF8_name(&self) -> bool              { (self.general_purpose_bit_flag & 2048) != 0 }
+    pub fn has_utf8_name(&self) -> bool              { (self.general_purpose_bit_flag & 2048) != 0 }
     pub fn uses_masking(&self) -> bool               { (self.general_purpose_bit_flag & 8192) != 0 }
 
     pub fn total_size(&self) -> uint {
@@ -186,7 +186,7 @@ impl LocalFileHeader {
         h.uncompressed_size = try_io!(r.read_le_u32());
         let file_name_length = try_io!(r.read_le_u16()) as uint;
         let extra_field_length = try_io!(r.read_le_u16()) as uint;
-        h.file_name = try!(read_maybe_utf8(r, h.has_UTF8_name(), file_name_length));
+        h.file_name = try!(read_maybe_utf8(r, h.has_utf8_name(), file_name_length));
         h.extra_field = try_io!(r.read_exact(extra_field_length));
 
         // check for some things we don't support (yet?)
@@ -210,7 +210,7 @@ impl LocalFileHeader {
         try_io!(w.write_le_u32(self.uncompressed_size));
         try_io!(w.write_le_u16(try!(ensure_u16_field_length(self.file_name.len()))));
         try_io!(w.write_le_u16(try!(ensure_u16_field_length(self.extra_field.len()))));
-        try!(write_maybe_utf8(w, self.has_UTF8_name(), &self.file_name));
+        try!(write_maybe_utf8(w, self.has_utf8_name(), &self.file_name));
         try_io!(w.write(self.extra_field.as_slice()));
         Ok(())
     }
@@ -232,7 +232,7 @@ impl LocalFileHeader {
         println!("  has data descriptor: {}", self.has_data_descriptor());
         println!("  is compressed patched data: {}", self.is_compressed_patched_data());
         println!("  uses strong encryption: {}", self.uses_strong_encryption());
-        println!("  has UFT8 name: {}", self.has_UTF8_name());
+        println!("  has UFT8 name: {}", self.has_utf8_name());
         println!("  uses masking: {}", self.uses_masking());
     }
 }
@@ -276,7 +276,7 @@ impl CentralDirectoryHeader {
     pub fn has_data_descriptor(&self) -> bool        { (self.general_purpose_bit_flag &    8) != 0 }
     pub fn is_compressed_patched_data(&self) -> bool { (self.general_purpose_bit_flag &   32) != 0 }
     pub fn uses_strong_encryption(&self) -> bool     { (self.general_purpose_bit_flag &   64) != 0 }
-    pub fn has_UTF8_name(&self) -> bool              { (self.general_purpose_bit_flag & 2048) != 0 }
+    pub fn has_utf8_name(&self) -> bool              { (self.general_purpose_bit_flag & 2048) != 0 }
     pub fn uses_masking(&self) -> bool               { (self.general_purpose_bit_flag & 8192) != 0 }
 
     pub fn total_size(&self) -> uint {
@@ -331,9 +331,9 @@ impl CentralDirectoryHeader {
         h.internal_file_attributes = try_io!(r.read_le_u16());
         h.external_file_attributes = try_io!(r.read_le_u32());
         h.relative_offset_of_local_header = try_io!(r.read_le_u32());
-        h.file_name = try!(read_maybe_utf8(r, h.has_UTF8_name(), file_name_length));
+        h.file_name = try!(read_maybe_utf8(r, h.has_utf8_name(), file_name_length));
         h.extra_field = try_io!(r.read_exact(extra_field_length));
-        h.file_comment = try!(read_maybe_utf8(r, h.has_UTF8_name(), file_comment_length));
+        h.file_comment = try!(read_maybe_utf8(r, h.has_utf8_name(), file_comment_length));
 
         // check for some things we don't support (yet?)
         // TODO
@@ -358,9 +358,9 @@ impl CentralDirectoryHeader {
         try_io!(w.write_le_u16(self.internal_file_attributes));
         try_io!(w.write_le_u32(self.external_file_attributes));
         try_io!(w.write_le_u32(self.relative_offset_of_local_header));
-        try!(write_maybe_utf8(w, self.has_UTF8_name(), &self.file_name));
+        try!(write_maybe_utf8(w, self.has_utf8_name(), &self.file_name));
         try_io!(w.write(self.extra_field.as_slice()));
-        try!(write_maybe_utf8(w, self.has_UTF8_name(), &self.file_comment));
+        try!(write_maybe_utf8(w, self.has_utf8_name(), &self.file_comment));
         Ok(())
     }
 }

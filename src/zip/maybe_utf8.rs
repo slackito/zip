@@ -83,7 +83,7 @@ impl MaybeUTF8 {
     }
 }
 
-impl Eq for MaybeUTF8 {
+impl PartialEq for MaybeUTF8 {
     fn eq(&self, other: &MaybeUTF8) -> bool {
         self.as_bytes().eq(&other.as_bytes())
     }
@@ -92,7 +92,7 @@ impl Eq for MaybeUTF8 {
 impl TotalEq for MaybeUTF8 {
 }
 
-impl Ord for MaybeUTF8 {
+impl PartialOrd for MaybeUTF8 {
     fn lt(&self, other: &MaybeUTF8) -> bool {
         self.as_bytes().lt(&other.as_bytes())
     }

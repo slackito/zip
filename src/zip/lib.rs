@@ -20,14 +20,14 @@ pub mod maybe_utf8;
 pub mod error;
 pub mod format;
 
-#[deriving(Eq,Show,Clone)]
+#[deriving(PartialEq,Show,Clone)]
 pub enum CompressionMethod {
     Store=0,
     Deflate=8,
     Unknown
 }
 
-fn u16_to_CompressionMethod(x: u16) -> CompressionMethod {
+fn u16_to_compression_method(x: u16) -> CompressionMethod {
     let u = x as uint;
     if      u == (Store   as uint) { Store }
     else if u == (Deflate as uint) { Deflate }
@@ -166,7 +166,7 @@ impl<T:Reader+Seek> ZipReader<T> {
         let file_offset = f.local_file_header_offset as i64 + h.total_size() as i64;
 
         let result = 
-            match u16_to_CompressionMethod(h.compression_method) {
+            match u16_to_compression_method(h.compression_method) {
                 Store => self.read_stored_file(file_offset, h.uncompressed_size),
                 Deflate => self.read_deflated_file(file_offset, h.compressed_size, h.uncompressed_size),
                 _ => fail!()
