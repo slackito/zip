@@ -89,7 +89,7 @@ impl PartialEq for MaybeUTF8 {
     }
 }
 
-impl TotalEq for MaybeUTF8 {
+impl Eq for MaybeUTF8 {
 }
 
 impl PartialOrd for MaybeUTF8 {
@@ -98,7 +98,7 @@ impl PartialOrd for MaybeUTF8 {
     }
 }
 
-impl TotalOrd for MaybeUTF8 {
+impl Ord for MaybeUTF8 {
     fn cmp(&self, other: &MaybeUTF8) -> Ordering {
         self.as_bytes().cmp(&other.as_bytes())
     }
