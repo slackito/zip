@@ -124,7 +124,7 @@ impl<T:BytesContainer> Equiv<T> for MaybeUTF8 {
     }
 }
 
-impl Container for MaybeUTF8 {
+impl Collection for MaybeUTF8 {
     fn len(&self) -> uint {
         self.as_bytes().len()
     }

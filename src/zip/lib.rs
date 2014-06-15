@@ -127,10 +127,11 @@ impl<T:Reader+Seek> ZipReader<T> {
     }
 
     pub fn iter<'a>(&'a mut self) -> ZipReaderIterator<'a, T> {
+        let cdr_offset = self.end_record.central_directory_offset;
         ZipReaderIterator {
             zip_reader: self,
             current_entry: 0,
-            current_offset: self.end_record.central_directory_offset as u64
+            current_offset: cdr_offset as u64
         }
     }
 
