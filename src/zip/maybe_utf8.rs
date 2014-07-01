@@ -93,8 +93,8 @@ impl Eq for MaybeUTF8 {
 }
 
 impl PartialOrd for MaybeUTF8 {
-    fn lt(&self, other: &MaybeUTF8) -> bool {
-        self.as_bytes().lt(&other.as_bytes())
+    fn partial_cmp(&self, other: &MaybeUTF8) -> Option<Ordering> {
+        self.as_bytes().partial_cmp(&other.as_bytes())
     }
 }
 
