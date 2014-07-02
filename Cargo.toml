@@ -1,0 +1,11 @@
+[package]
+
+name = "zip"
+version = "0.1.0"
+authors = ["Jorge Gorbe <slack@codemaniacs.com>", "Kang Seonghoon <public+rust@mearie.org>"]
+
+[[lib]]
+
+name = "zip"
+path = "src/zip/lib.rs"
+
