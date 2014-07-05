@@ -1,5 +1,7 @@
+use std::io::File;
 use std::io::{Reader, Writer, Seek, SeekSet, SeekEnd};
 use std::io::{IoResult, IoError, InvalidInput};
+use std::iter;
 use std::iter::range_inclusive;
 use std::path::BytesContainer;
 use error;
@@ -11,34 +13,46 @@ use format;
 use fileinfo;
 use fileinfo::{CompressionMethod, FileInfo};
 
-pub struct ZipReader<T> {
-    reader: T,
+pub struct ZipReader<R> {
+    reader: R,
     end_record: format::EndOfCentralDirectoryRecord,
 }
 
-pub struct ZipReaderIterator<'a, T> {
-    zip_reader: &'a mut ZipReader<T>,
+pub struct Files<'a, R> {
+    zip_reader: &'a mut ZipReader<R>,
     current_entry: u16,
     current_offset: u64,
 }
 
-impl<'a, T:Reader+Seek> Iterator<FileInfo> for ZipReaderIterator<'a, T> {
-    fn next(&mut self) -> Option<FileInfo> {
+impl<'a, R:Reader+Seek> Iterator<Result<FileInfo, ZipError>> for Files<'a, R> {
+    fn next(&mut self) -> Option<Result<FileInfo, ZipError>> {
         if self.current_entry < self.zip_reader.end_record.total_entry_count {
-            self.zip_reader.reader.seek(self.current_offset as i64, SeekSet);
-            let h = format::CentralDirectoryHeader::read(&mut self.zip_reader.reader).unwrap();
+            match self.zip_reader.reader.seek(self.current_offset as i64, SeekSet) {
+                Ok(()) => {}
+                Err(err) => { return Some(Err(error::IoError(err))); }
+            }
+            let h = match format::CentralDirectoryHeader::read(&mut self.zip_reader.reader) {
+                Ok(h) => h,
+                Err(err) => { return Some(Err(err)); }
+            };
             let info = FileInfo::from_cdh(&h);
             self.current_entry += 1;
             self.current_offset += h.total_size() as u64;
-            Some(info)
+            Some(Ok(info))
         } else {
             None
         }
     }
 }
 
-impl<T:Reader+Seek> ZipReader<T> {
-    pub fn new(reader: T) -> Result<ZipReader<T>, ZipError> {
+impl ZipReader<File> {
+    pub fn open(path: &Path) -> Result<ZipReader<File>, ZipError> {
+        ZipReader::new(try_io!(File::open(path)))
+    }
+}
+
+impl<R:Reader+Seek> ZipReader<R> {
+    pub fn new(reader: R) -> Result<ZipReader<R>, ZipError> {
         // find the End of Central Directory record, looking backwards from the end of the file
         let mut r = reader;
         try_io!(r.seek(0, SeekEnd));
@@ -68,33 +82,27 @@ impl<T:Reader+Seek> ZipReader<T> {
         }
     }
 
-    pub fn iter<'a>(&'a mut self) -> ZipReaderIterator<'a, T> {
+    pub fn files_raw<'a>(&'a mut self) -> Files<'a, R> {
         let cdr_offset = self.end_record.central_directory_offset;
-        ZipReaderIterator {
+        Files {
             zip_reader: self,
             current_entry: 0,
             current_offset: cdr_offset as u64
         }
     }
 
-    pub fn infolist(&mut self) -> Vec<FileInfo> {
-        let mut result = Vec::new();
-        for info in self.iter() {
-            result.push(info);
-        }
-        result
+    pub fn files<'a>(&'a mut self) -> iter::Map<Result<FileInfo, ZipError>, FileInfo,
+                                                Files<'a, R>> {
+        self.files_raw().map(|fileinfo_or_err| fileinfo_or_err.unwrap())
     }
 
-    pub fn namelist(&mut self) -> Vec<MaybeUTF8> {
-        let mut result = Vec::new();
-        for info in self.iter() {
-            result.push(info.name.clone());
-        }
-        result
+    pub fn file_names<'a>(&'a mut self) -> iter::Map<Result<FileInfo, ZipError>, MaybeUTF8,
+                                                     Files<'a, R>> {
+        self.files_raw().map(|fileinfo_or_err| fileinfo_or_err.unwrap().name)
     }
 
-    pub fn get_file_info<T:BytesContainer>(&mut self, name: T) -> Result<FileInfo, ZipError> {
-        for i in self.iter() {
+    pub fn info<T:BytesContainer>(&mut self, name: T) -> Result<FileInfo, ZipError> {
+        for i in self.files() {
             if i.name.equiv(&name) {
                 return Ok(i);
             }

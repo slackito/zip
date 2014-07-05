@@ -9,7 +9,7 @@
 extern crate flate;
 
 pub use self::fileinfo::{CompressionMethod, Deflate, Deflate, Unknown, FileInfo};
-pub use self::reader::{ZipReader, ZipReaderIterator};
+pub use self::reader::ZipReader;
 
 mod crc32;
 pub mod maybe_utf8;
