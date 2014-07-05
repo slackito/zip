@@ -173,8 +173,9 @@ impl LocalFileHeader {
     pub fn read<T:Reader>(r: &mut T) -> ZipResult<LocalFileHeader> {
         let mut h = LocalFileHeader::new();
 
-        if try_io!(r.read_le_u32()) != LFH_SIGNATURE {
-            return Err(error::InvalidSignature);
+        let magic = try_io!(r.read_le_u32());
+        if magic != LFH_SIGNATURE {
+            return Err(error::InvalidSignature(magic));
         }
 
         h.version_needed_to_extract = try_io!(r.read_le_u16());
@@ -312,8 +313,9 @@ impl CentralDirectoryHeader {
     pub fn read<T:Reader>(r: &mut T) -> ZipResult<CentralDirectoryHeader> {
         let mut h = CentralDirectoryHeader::new();
 
-        if try_io!(r.read_le_u32()) != CDH_SIGNATURE {
-            return Err(error::InvalidSignature);
+        let magic = try_io!(r.read_le_u32());
+        if magic != CDH_SIGNATURE {
+            return Err(error::InvalidSignature(magic));
         }
 
         h.version_made_by = try_io!(r.read_le_u16());
@@ -403,8 +405,9 @@ impl EndOfCentralDirectoryRecord {
     pub fn read<T:Reader>(r: &mut T) -> ZipResult<EndOfCentralDirectoryRecord> {
         let mut h = EndOfCentralDirectoryRecord::new();
 
-        if try_io!(r.read_le_u32()) != EOCDR_SIGNATURE {
-            return Err(error::InvalidSignature);
+        let magic = try_io!(r.read_le_u32());
+        if magic != EOCDR_SIGNATURE {
+            return Err(error::InvalidSignature(magic));
         }
 
         h.disk_number = try_io!(r.read_le_u16());
