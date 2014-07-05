@@ -8,10 +8,8 @@ use maybe_utf8::MaybeUTF8;
 use flate;
 use crc32;
 use format;
-use FileInfo;
-use CompressionMethod;
-use Deflate;
-use Store;
+use fileinfo;
+use fileinfo::{CompressionMethod, FileInfo};
 
 pub struct ZipReader<T> {
     reader: T,
@@ -112,8 +110,8 @@ impl<T:Reader+Seek> ZipReader<T> {
 
         let result =
             match CompressionMethod::from_u16(h.compression_method) {
-                Store => self.read_stored_file(file_offset, h.uncompressed_size),
-                Deflate => self.read_deflated_file(file_offset, h.compressed_size, h.uncompressed_size),
+                fileinfo::Store => self.read_stored_file(file_offset, h.uncompressed_size),
+                fileinfo::Deflate => self.read_deflated_file(file_offset, h.compressed_size, h.uncompressed_size),
                 _ => fail!()
             };
         let result = try_io!(result);
