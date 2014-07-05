@@ -9,3 +9,8 @@ authors = ["Jorge Gorbe <slack@codemaniacs.com>", "Kang Seonghoon <public+rust@m
 name = "zip"
 path = "src/zip/lib.rs"
 
+[[bin]]
+
+name = "zip-demo"
+path = "src/zip-demo/main.rs"
+
