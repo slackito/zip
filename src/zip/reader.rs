@@ -75,7 +75,7 @@ impl<R:Reader+Seek> ZipReader<R> {
         match end_record_offset {
             Some(offset) => {
                 try_io!(r.seek(offset as i64, SeekSet));
-                let e = format::EndOfCentralDirectoryRecord::read(&mut r).unwrap();
+                let e = try!(format::EndOfCentralDirectoryRecord::read(&mut r));
                 Ok(ZipReader {reader: r, end_record: e})
             },
             None => Err(error::NotAZipFile)
@@ -113,7 +113,7 @@ impl<R:Reader+Seek> ZipReader<R> {
     // TODO: Create a Reader for the cases when you don't want to decompress the whole file
     pub fn read(&mut self, f: &FileInfo) -> Result<Vec<u8>, ZipError> {
         try_io!(self.reader.seek(f.local_file_header_offset as i64, SeekSet));
-        let h = format::LocalFileHeader::read(&mut self.reader).unwrap();
+        let h = try!(format::LocalFileHeader::read(&mut self.reader));
         let file_offset = f.local_file_header_offset as i64 + h.total_size() as i64;
 
         let result =
