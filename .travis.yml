@@ -1,18 +1,18 @@
 env:
   global:
     - secure: GZkI7Z+vLvPQHraoiG2p++j23pbfBUA5+2d/VEj8g8gC7bZOpQuCr87aYxD+TjhRFmvQ9KXc3VvDHjisbQMKh1zxy8UT97lWlIryhTVoB5A29acrzxNnhFgYujxLYojXQEnMGgRBxD48sdrXzAxDes29TIdpMLZ1WW7U0MGQWyY=
-#before_install:
+before_install:
 #  - yes | sudo add-apt-repository ppa:hansjorg/rust
 #  - sudo apt-get update
-install:
+#  - sudo apt-get install rust-nightly
   - curl -O http://static.rust-lang.org/dist/rust-nightly-x86_64-unknown-linux-gnu.tar.gz
+  - curl -O http://static.rust-lang.org/cargo-dist/cargo-nightly-linux.tar.gz
   - tar xfz rust-nightly-x86_64-unknown-linux-gnu.tar.gz
-  - (cd rust-nightly-x86_64-unknown-linux-gnu/ && sudo ./install.sh)
+  - (cd rust-nightly-x86_64-unknown-linux-gnu/ && sudo ./install.sh --prefix=/usr)
+  - tar xfz cargo-nightly-linux.tar.gz
+  - sudo cp -R cargo-nightly/* /usr
 script:
-  - mkdir target
-  - rustc src/zip/lib.rs --out-dir=target
-  #- rustdoc --test src/zip/lib.rs -L target
-  - rustc src/zip-demo/main.rs --out-dir=target -L target
+  - cargo build
   - rustdoc src/zip/lib.rs
 branches:
   only:

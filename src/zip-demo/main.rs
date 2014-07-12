@@ -1,5 +1,3 @@
-#![crate_id = "zip-demo"]
-
 extern crate zip;
 
 use std::{os, io};

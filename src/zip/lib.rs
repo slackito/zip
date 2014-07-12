@@ -1,8 +1,5 @@
-#![crate_id = "zip#0.1.0"]
-#![crate_type = "lib"]
-
-#![desc="A simple rust library for reading and writing ZIP files"]
-#![license="MIT"]
+#![desc = "A simple rust library for reading and writing ZIP files"]
+#![license = "MIT"]
 
 #![feature(macro_rules)]
 
