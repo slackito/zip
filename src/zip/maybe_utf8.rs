@@ -1,6 +1,6 @@
 //! Byte container optionally encoded as UTF-8.
 
-use std::{str, fmt};
+use std::{str, string, fmt};
 use std::str::MaybeOwned;
 use std::default::Default;
 use std::path::BytesContainer;
@@ -47,7 +47,7 @@ impl MaybeUTF8 {
     }
 
     pub fn as_maybe_owned<'a>(&'a self) -> MaybeOwned<'a> {
-        self.map_as_maybe_owned(str::from_utf8_lossy)
+        self.map_as_maybe_owned(String::from_utf8_lossy)
     }
 
     pub fn into_str(self) -> Result<String, MaybeUTF8> {
@@ -68,9 +68,9 @@ impl MaybeUTF8 {
     }
 
     pub fn into_str_lossy(self) -> String {
-        self.map_into_str(|v| match str::from_utf8_lossy(v.as_slice()) {
+        self.map_into_str(|v| match String::from_utf8_lossy(v.as_slice()) {
             // `v` is definitely UTF-8, so do not make a copy!
-            str::Slice(_) => unsafe {str::raw::from_utf8_owned(v)},
+            str::Slice(_) => unsafe {string::raw::from_utf8(v)},
             str::Owned(s) => s,
         })
     }
