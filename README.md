@@ -1,4 +1,4 @@
-# rust-zip
+# rust-zip [![Build Status](https://travis-ci.org/slackito/zip.svg)](https://travis-ci.org/slackito/zip)
 
 A simple rust library to read and write Zip archives, which is also my pet project for learning Rust.
 At the moment you can list the files in a Zip archive, as well as extracting them if they are either stored
