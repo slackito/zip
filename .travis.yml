@@ -5,9 +5,6 @@ env:
   global:
     - secure: GZkI7Z+vLvPQHraoiG2p++j23pbfBUA5+2d/VEj8g8gC7bZOpQuCr87aYxD+TjhRFmvQ9KXc3VvDHjisbQMKh1zxy8UT97lWlIryhTVoB5A29acrzxNnhFgYujxLYojXQEnMGgRBxD48sdrXzAxDes29TIdpMLZ1WW7U0MGQWyY=
 
-install:
-    - curl www.rust-lang.org/rustup.sh | sudo bash
-
 script:
     - rustc --version
     - cargo build -v
