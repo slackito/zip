@@ -1,2 +1,3 @@
-target
-doc
+target/
+doc/
+Cargo.lock

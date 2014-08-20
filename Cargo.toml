@@ -2,9 +2,13 @@
 
 name = "zip"
 version = "0.1.0"
-authors = ["Jorge Gorbe <slack@codemaniacs.com>", "Kang Seonghoon <public+rust@mearie.org>"]
+authors = [
+    "Jorge Gorbe <slack@codemaniacs.com>",
+    "Kang Seonghoon <public+rust@mearie.org>",
+    "Nikita Pekin <contact@nikitapek.in>"
+]
 
-[[lib]]
+[lib]
 
 name = "zip"
 path = "src/zip/lib.rs"
@@ -13,4 +17,3 @@ path = "src/zip/lib.rs"
 
 name = "zip-demo"
 path = "src/zip-demo/main.rs"
-
