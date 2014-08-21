@@ -1,21 +1,17 @@
+language: rust
+os:
+    - linux
+    - osx
 env:
-  global:
-    - secure: GZkI7Z+vLvPQHraoiG2p++j23pbfBUA5+2d/VEj8g8gC7bZOpQuCr87aYxD+TjhRFmvQ9KXc3VvDHjisbQMKh1zxy8UT97lWlIryhTVoB5A29acrzxNnhFgYujxLYojXQEnMGgRBxD48sdrXzAxDes29TIdpMLZ1WW7U0MGQWyY=
-before_install:
-#  - yes | sudo add-apt-repository ppa:hansjorg/rust
-#  - sudo apt-get update
-#  - sudo apt-get install rust-nightly
-  - curl -O http://static.rust-lang.org/dist/rust-nightly-x86_64-unknown-linux-gnu.tar.gz
-  - curl -O http://static.rust-lang.org/cargo-dist/cargo-nightly-x86_64-unknown-linux-gnu.tar.gz
-  - tar xfz rust-nightly-x86_64-unknown-linux-gnu.tar.gz
-  - tar xfz cargo-nightly-x86_64-unknown-linux-gnu.tar.gz
-  - (cd rust-nightly-x86_64-unknown-linux-gnu/ && sudo ./install.sh)
-  - (cd cargo-nightly-x86_64-unknown-linux-gnu/ && sudo ./install.sh)
+    global:
+        - LD_LIBRARY_PATH: /usr/local/lib
+        - secure: GZkI7Z+vLvPQHraoiG2p++j23pbfBUA5+2d/VEj8g8gC7bZOpQuCr87aYxD+TjhRFmvQ9KXc3VvDHjisbQMKh1zxy8UT97lWlIryhTVoB5A29acrzxNnhFgYujxLYojXQEnMGgRBxD48sdrXzAxDes29TIdpMLZ1WW7U0MGQWyY=
+before_script:
+    - rustc -v
+    - cargo -V
 script:
-  - cargo build
-  - rustdoc src/zip/lib.rs
-branches:
-  only:
-    - master
+    - cargo build -v
+    - cargo test -v
+    - rustdoc src/zip/lib.rs
 after_script:
-  - curl http://www.rust-ci.org/artifacts/put?t=$RUSTCI_TOKEN | sh
+    - curl http://www.rust-ci.org/artifacts/put?t=$RUSTCI_TOKEN | sh
