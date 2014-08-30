@@ -18,7 +18,7 @@ pub struct ZipReader<R> {
     end_record: format::EndOfCentralDirectoryRecord,
 }
 
-pub struct Files<'a, R> {
+pub struct Files<'a, R:'a> {
     zip_reader: &'a mut ZipReader<R>,
     current_entry: u16,
     current_offset: u64,
