@@ -29,7 +29,7 @@ impl<'a, R:Reader+Seek> Iterator<Result<FileInfo, ZipError>> for Files<'a, R> {
         if self.current_entry < self.zip_reader.end_record.total_entry_count {
             match self.zip_reader.reader.seek(self.current_offset as i64, SeekSet) {
                 Ok(()) => {}
-                Err(err) => { return Some(Err(error::IoError(err))); }
+                Err(err) => { return Some(Err(error::SomeIoError(err))); }
             }
             let h = match format::CentralDirectoryHeader::read(&mut self.zip_reader.reader) {
                 Ok(h) => h,
