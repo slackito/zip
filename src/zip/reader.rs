@@ -145,7 +145,7 @@ impl<R:Reader+Seek> ZipReader<R> {
         };
         assert!(uncompressed_bytes.len() as u32 == uncompressed_size);
         // FIXME try not to copy the buffer, or switch to the incremental fashion
-        Ok(Vec::from_slice(uncompressed_bytes.as_slice()))
+        Ok(uncompressed_bytes.as_slice().to_vec())
     }
 
     // when we make read return a Reader, we will be able to loop here and copy
