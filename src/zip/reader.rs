@@ -120,7 +120,7 @@ impl<R:Reader+Seek> ZipReader<R> {
             match CompressionMethod::from_u16(h.compression_method) {
                 fileinfo::Store => self.read_stored_file(file_offset, h.uncompressed_size),
                 fileinfo::Deflate => self.read_deflated_file(file_offset, h.compressed_size, h.uncompressed_size),
-                _ => fail!()
+                _ => panic!()
             };
         let result = try_io!(result);
 
