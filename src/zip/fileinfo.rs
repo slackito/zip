@@ -37,7 +37,7 @@ impl FileInfo {
         let method : CompressionMethod =
             if h.compression_method == 0 { Store }
             else if h.compression_method == 8 { Deflate }
-            else { fail!() };
+            else { panic!() };
         FileInfo {
             name:               h.file_name.clone(),
             compression_method: method,
