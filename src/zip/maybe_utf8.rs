@@ -81,6 +81,20 @@ impl MaybeUTF8 {
             Bytes(v) => v,
         }
     }
+
+    pub fn len(&self) -> uint {
+        match *self {
+            UTF8(ref s) => s.len(),
+            Bytes(ref v) => v.len(),
+        }
+    }
+
+    pub fn clear(&mut self) {
+        match *self {
+            UTF8(ref mut s) => s.clear(),
+            Bytes(ref mut v) => v.clear(),
+        }
+    }
 }
 
 impl PartialEq for MaybeUTF8 {
@@ -121,21 +135,6 @@ impl BytesContainer for MaybeUTF8 {
 impl<T:BytesContainer> Equiv<T> for MaybeUTF8 {
     fn equiv(&self, other: &T) -> bool {
         self.as_bytes() == other.container_as_bytes()
-    }
-}
-
-impl Collection for MaybeUTF8 {
-    fn len(&self) -> uint {
-        self.as_bytes().len()
-    }
-}
-
-impl Mutable for MaybeUTF8 {
-    fn clear(&mut self) {
-        match *self {
-            UTF8(ref mut s) => s.clear(),
-            Bytes(ref mut v) => v.clear(),
-        }
     }
 }
 
