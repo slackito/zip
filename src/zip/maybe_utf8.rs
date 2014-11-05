@@ -123,12 +123,12 @@ impl BytesContainer for MaybeUTF8 {
         self.as_bytes()
     }
 
-    fn container_into_owned_bytes(self) -> Vec<u8> {
-        self.into_bytes()
-    }
-
     fn container_as_str<'a>(&'a self) -> Option<&'a str> {
         self.as_str()
+    }
+
+    fn is_str(_: Option<&MaybeUTF8>) -> bool {
+        false
     }
 }
 
