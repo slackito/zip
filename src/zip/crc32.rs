@@ -69,7 +69,7 @@ static CRCTABLE : [u32, ..256] = [
 /// in PKZip.
 pub fn crc32(buf: &[u8]) -> u32 {
     let mut r = 0xffffffffu32;
-    for byte in buf.iter() {
+    for &byte in buf.iter() {
         let idx = byte ^ ((r & 0xff) as u8);
         r = (r >> 8) ^ CRCTABLE[idx as uint];
     }
