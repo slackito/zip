@@ -4,13 +4,11 @@ use std::io::{IoResult, IoError, InvalidInput};
 use std::iter;
 use std::iter::range_inclusive;
 use std::path::BytesContainer;
-use error;
 use error::ZipError;
 use maybe_utf8::MaybeUTF8;
 use flate;
 use crc32;
 use format;
-use fileinfo;
 use fileinfo::{CompressionMethod, FileInfo};
 
 pub struct ZipReader<R> {
@@ -29,7 +27,7 @@ impl<'a, R:Reader+Seek> Iterator<Result<FileInfo, ZipError>> for Files<'a, R> {
         if self.current_entry < self.zip_reader.end_record.total_entry_count {
             match self.zip_reader.reader.seek(self.current_offset as i64, SeekSet) {
                 Ok(()) => {}
-                Err(err) => { return Some(Err(error::SomeIoError(err))); }
+                Err(err) => { return Some(Err(ZipError::IoError(err))); }
             }
             let h = match format::CentralDirectoryHeader::read(&mut self.zip_reader.reader) {
                 Ok(h) => h,
@@ -78,7 +76,7 @@ impl<R:Reader+Seek> ZipReader<R> {
                 let e = try!(format::EndOfCentralDirectoryRecord::read(&mut r));
                 Ok(ZipReader {reader: r, end_record: e})
             },
-            None => Err(error::NotAZipFile)
+            None => Err(ZipError::NotAZipFile)
         }
     }
 
@@ -107,7 +105,7 @@ impl<R:Reader+Seek> ZipReader<R> {
                 return Ok(i);
             }
         }
-        Err(error::FileNotFoundInArchive)
+        Err(ZipError::FileNotFoundInArchive)
     }
 
     // TODO: Create a Reader for the cases when you don't want to decompress the whole file
@@ -118,8 +116,10 @@ impl<R:Reader+Seek> ZipReader<R> {
 
         let result =
             match CompressionMethod::from_u16(h.compression_method) {
-                fileinfo::Store => self.read_stored_file(file_offset, h.uncompressed_size),
-                fileinfo::Deflate => self.read_deflated_file(file_offset, h.compressed_size, h.uncompressed_size),
+                CompressionMethod::Store =>
+                    self.read_stored_file(file_offset, h.uncompressed_size),
+                CompressionMethod::Deflate =>
+                    self.read_deflated_file(file_offset, h.compressed_size, h.uncompressed_size),
                 _ => panic!()
             };
         let result = try_io!(result);
@@ -128,7 +128,7 @@ impl<R:Reader+Seek> ZipReader<R> {
         let crc = crc32::crc32(result.as_slice());
 
         if crc == h.crc32 { Ok(result) }
-        else { Err(error::CrcError) }
+        else { Err(ZipError::CrcError) }
     }
 
     fn read_stored_file(&mut self, pos: i64, uncompressed_size: u32) -> IoResult<Vec<u8>> {

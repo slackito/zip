@@ -2,8 +2,7 @@
 
 use std::fmt;
 use std::io::IoResult;
-use error;
-use error::ZipResult;
+use error::{ZipError, ZipResult};
 use maybe_utf8::MaybeUTF8;
 
 fn read_maybe_utf8<T:Reader>(r: &mut T, should_be_utf8: bool, len: uint) -> ZipResult<MaybeUTF8> {
@@ -11,7 +10,7 @@ fn read_maybe_utf8<T:Reader>(r: &mut T, should_be_utf8: bool, len: uint) -> ZipR
     if should_be_utf8 {
         match String::from_utf8(v) {
             Ok(s) => Ok(MaybeUTF8::from_str(s)),
-            Err(_) => Err(error::NonUTF8Field),
+            Err(_) => Err(ZipError::NonUTF8Field),
         }
     } else {
         Ok(MaybeUTF8::from_bytes(v))
@@ -22,7 +21,7 @@ fn write_maybe_utf8<T:Writer>(w: &mut T, should_be_utf8: bool, s: &MaybeUTF8) ->
     if should_be_utf8 {
         match s.as_str() {
             Some(s) => try_io!(w.write(s.as_bytes())),
-            None => return Err(error::NonUTF8Field),
+            None => return Err(ZipError::NonUTF8Field),
         }
     } else {
         try_io!(w.write(s.as_bytes()));
@@ -33,7 +32,7 @@ fn write_maybe_utf8<T:Writer>(w: &mut T, should_be_utf8: bool, s: &MaybeUTF8) ->
 fn ensure_u16_field_length(len: uint) -> ZipResult<u16> {
     match len.to_u16() {
         Some(v) => Ok(v),
-        None => Err(error::TooLongField),
+        None => Err(ZipError::TooLongField),
     }
 }
 
@@ -175,7 +174,7 @@ impl LocalFileHeader {
 
         let magic = try_io!(r.read_le_u32());
         if magic != LFH_SIGNATURE {
-            return Err(error::InvalidSignature(magic));
+            return Err(ZipError::InvalidSignature(magic));
         }
 
         h.version_needed_to_extract = try_io!(r.read_le_u16());
@@ -315,7 +314,7 @@ impl CentralDirectoryHeader {
 
         let magic = try_io!(r.read_le_u32());
         if magic != CDH_SIGNATURE {
-            return Err(error::InvalidSignature(magic));
+            return Err(ZipError::InvalidSignature(magic));
         }
 
         h.version_made_by = try_io!(r.read_le_u16());
@@ -407,7 +406,7 @@ impl EndOfCentralDirectoryRecord {
 
         let magic = try_io!(r.read_le_u32());
         if magic != EOCDR_SIGNATURE {
-            return Err(error::InvalidSignature(magic));
+            return Err(ZipError::InvalidSignature(magic));
         }
 
         h.disk_number = try_io!(r.read_le_u16());

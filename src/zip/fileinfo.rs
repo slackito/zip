@@ -11,9 +11,9 @@ pub enum CompressionMethod {
 impl CompressionMethod {
     pub fn from_u16(x: u16) -> CompressionMethod {
         let u = x as uint;
-        if      u == (Store   as uint) { Store }
-        else if u == (Deflate as uint) { Deflate }
-        else                           { Unknown }
+        if      u == (CompressionMethod::Store   as uint) { CompressionMethod::Store }
+        else if u == (CompressionMethod::Deflate as uint) { CompressionMethod::Deflate }
+        else                                              { CompressionMethod::Unknown }
     }
 }
 
@@ -35,8 +35,8 @@ impl FileInfo {
     // fills a FileInfo struct with the file properties, for users of the external API to see
     pub fn from_cdh(h: &format::CentralDirectoryHeader) -> FileInfo {
         let method : CompressionMethod =
-            if h.compression_method == 0 { Store }
-            else if h.compression_method == 8 { Deflate }
+            if h.compression_method == 0 { CompressionMethod::Store }
+            else if h.compression_method == 8 { CompressionMethod::Deflate }
             else { panic!() };
         FileInfo {
             name:               h.file_name.clone(),

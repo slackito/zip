@@ -5,7 +5,7 @@
 
 extern crate flate;
 
-pub use self::fileinfo::{CompressionMethod, Deflate, Unknown, FileInfo};
+pub use self::fileinfo::{CompressionMethod, FileInfo};
 pub use self::reader::ZipReader;
 
 mod crc32;

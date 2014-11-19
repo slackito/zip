@@ -13,36 +13,36 @@ pub enum MaybeUTF8 {
 
 impl MaybeUTF8 {
     pub fn new() -> MaybeUTF8 {
-        UTF8(String::new())
+        MaybeUTF8::UTF8(String::new())
     }
 
     pub fn from_str(s: String) -> MaybeUTF8 {
-        UTF8(s)
+        MaybeUTF8::UTF8(s)
     }
 
     pub fn from_bytes(v: Vec<u8>) -> MaybeUTF8 {
-        Bytes(v)
+        MaybeUTF8::Bytes(v)
     }
 
     pub fn as_bytes<'a>(&'a self) -> &'a [u8] {
         match *self {
-            UTF8(ref s) => s.as_bytes(),
-            Bytes(ref v) => v.as_slice(),
+            MaybeUTF8::UTF8(ref s) => s.as_bytes(),
+            MaybeUTF8::Bytes(ref v) => v.as_slice(),
         }
     }
 
     pub fn as_str<'a>(&'a self) -> Option<&'a str> {
         match *self {
-            UTF8(ref s) => Some(s.as_slice()),
-            Bytes(ref v) => str::from_utf8(v.as_slice()),
+            MaybeUTF8::UTF8(ref s) => Some(s.as_slice()),
+            MaybeUTF8::Bytes(ref v) => str::from_utf8(v.as_slice()),
         }
     }
 
     pub fn map_as_maybe_owned<'a>(&'a self,
                                   as_maybe_owned: |&'a [u8]| -> MaybeOwned<'a>) -> MaybeOwned<'a> {
         match *self {
-            UTF8(ref s) => s.as_slice().into_maybe_owned(),
-            Bytes(ref v) => as_maybe_owned(v.as_slice()),
+            MaybeUTF8::UTF8(ref s) => s.as_slice().into_maybe_owned(),
+            MaybeUTF8::Bytes(ref v) => as_maybe_owned(v.as_slice()),
         }
     }
 
@@ -52,18 +52,18 @@ impl MaybeUTF8 {
 
     pub fn into_str(self) -> Result<String, MaybeUTF8> {
         match self {
-            UTF8(s) => Ok(s),
-            Bytes(v) => match String::from_utf8(v) {
+            MaybeUTF8::UTF8(s) => Ok(s),
+            MaybeUTF8::Bytes(v) => match String::from_utf8(v) {
                 Ok(s) => Ok(s),
-                Err(v) => Err(Bytes(v)),
+                Err(v) => Err(MaybeUTF8::Bytes(v)),
             },
         }
     }
 
     pub fn map_into_str(self, into_str: |Vec<u8>| -> String) -> String {
         match self {
-            UTF8(s) => s,
-            Bytes(v) => into_str(v),
+            MaybeUTF8::UTF8(s) => s,
+            MaybeUTF8::Bytes(v) => into_str(v),
         }
     }
 
@@ -77,22 +77,22 @@ impl MaybeUTF8 {
 
     pub fn into_bytes(self) -> Vec<u8> {
         match self {
-            UTF8(s) => s.into_bytes(),
-            Bytes(v) => v,
+            MaybeUTF8::UTF8(s) => s.into_bytes(),
+            MaybeUTF8::Bytes(v) => v,
         }
     }
 
     pub fn len(&self) -> uint {
         match *self {
-            UTF8(ref s) => s.len(),
-            Bytes(ref v) => v.len(),
+            MaybeUTF8::UTF8(ref s) => s.len(),
+            MaybeUTF8::Bytes(ref v) => v.len(),
         }
     }
 
     pub fn clear(&mut self) {
         match *self {
-            UTF8(ref mut s) => s.clear(),
-            Bytes(ref mut v) => v.clear(),
+            MaybeUTF8::UTF8(ref mut s) => s.clear(),
+            MaybeUTF8::Bytes(ref mut v) => v.clear(),
         }
     }
 }
