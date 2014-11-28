@@ -1,7 +1,7 @@
 //! Byte container optionally encoded as UTF-8.
 
-use std::{str, string, fmt};
-use std::str::MaybeOwned;
+use std::{str, borrow, fmt};
+use std::str::CowString;
 use std::default::Default;
 use std::path::BytesContainer;
 
@@ -38,16 +38,16 @@ impl MaybeUTF8 {
         }
     }
 
-    pub fn map_as_maybe_owned<'a>(&'a self,
-                                  as_maybe_owned: |&'a [u8]| -> MaybeOwned<'a>) -> MaybeOwned<'a> {
+    pub fn map_as_cow<'a>(&'a self,
+                                  as_cow: |&'a [u8]| -> CowString<'a>) -> CowString<'a> {
         match *self {
-            MaybeUTF8::UTF8(ref s) => s.as_slice().into_maybe_owned(),
-            MaybeUTF8::Bytes(ref v) => as_maybe_owned(v.as_slice()),
+            MaybeUTF8::UTF8(ref s) => s.as_slice().into_cow(),
+            MaybeUTF8::Bytes(ref v) => as_cow(v.as_slice()),
         }
     }
 
-    pub fn as_maybe_owned<'a>(&'a self) -> MaybeOwned<'a> {
-        self.map_as_maybe_owned(String::from_utf8_lossy)
+    pub fn as_cow<'a>(&'a self) -> CowString<'a> {
+        self.map_as_cow(String::from_utf8_lossy)
     }
 
     pub fn into_str(self) -> Result<String, MaybeUTF8> {
@@ -70,8 +70,8 @@ impl MaybeUTF8 {
     pub fn into_str_lossy(self) -> String {
         self.map_into_str(|v| match String::from_utf8_lossy(v.as_slice()) {
             // `v` is definitely UTF-8, so do not make a copy!
-            str::Slice(_) => unsafe {string::raw::from_utf8(v)},
-            str::Owned(s) => s,
+            borrow::Borrowed(_) => unsafe {String::from_utf8_unchecked(v)},
+            borrow::Owned(s) => s,
         })
     }
 
