@@ -1,6 +1,7 @@
 //! Byte container optionally encoded as UTF-8.
 
-use std::{str, borrow, fmt};
+use std::{str, fmt};
+use std::borrow::Cow;
 use std::str::CowString;
 use std::default::Default;
 use std::path::BytesContainer;
@@ -70,8 +71,8 @@ impl MaybeUTF8 {
     pub fn into_str_lossy(self) -> String {
         self.map_into_str(|v| match String::from_utf8_lossy(v.as_slice()) {
             // `v` is definitely UTF-8, so do not make a copy!
-            borrow::Borrowed(_) => unsafe {String::from_utf8_unchecked(v)},
-            borrow::Owned(s) => s,
+            Cow::Borrowed(_) => unsafe {String::from_utf8_unchecked(v)},
+            Cow::Owned(s) => s,
         })
     }
 

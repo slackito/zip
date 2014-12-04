@@ -8,6 +8,9 @@ authors = [
     "Nikita Pekin <contact@nikitapek.in>"
 ]
 
+description = "A simple rust library for reading and writing ZIP files"
+license = "MIT"
+
 [lib]
 
 name = "zip"

@@ -1,6 +1,3 @@
-#![desc = "A simple rust library for reading and writing ZIP files"]
-#![license = "MIT"]
-
 #![feature(macro_rules)]
 
 extern crate flate;
