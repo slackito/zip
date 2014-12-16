@@ -1,7 +1,6 @@
 use std::io::File;
 use std::io::{Reader, Writer, Seek, SeekSet, SeekEnd};
 use std::io::{IoResult, IoError, InvalidInput};
-use std::iter;
 use std::iter::range_inclusive;
 use std::path::BytesContainer;
 use error::ZipError;
@@ -16,13 +15,13 @@ pub struct ZipReader<R> {
     end_record: format::EndOfCentralDirectoryRecord,
 }
 
-pub struct Files<'a, R:'a> {
+pub struct RawFiles<'a, R:'a> {
     zip_reader: &'a mut ZipReader<R>,
     current_entry: u16,
     current_offset: u64,
 }
 
-impl<'a, R:Reader+Seek> Iterator<Result<FileInfo, ZipError>> for Files<'a, R> {
+impl<'a, R:Reader+Seek> Iterator<Result<FileInfo, ZipError>> for RawFiles<'a, R> {
     fn next(&mut self) -> Option<Result<FileInfo, ZipError>> {
         if self.current_entry < self.zip_reader.end_record.total_entry_count {
             match self.zip_reader.reader.seek(self.current_offset as i64, SeekSet) {
@@ -41,6 +40,24 @@ impl<'a, R:Reader+Seek> Iterator<Result<FileInfo, ZipError>> for Files<'a, R> {
             None
         }
     }
+}
+
+pub struct Files<'a, R:'a> {
+    base: RawFiles<'a, R>,
+}
+
+impl<'a, R:Reader+Seek> Iterator<FileInfo> for Files<'a, R> {
+    fn next(&mut self) -> Option<FileInfo> { self.base.next().map(|i| i.unwrap()) }
+    fn size_hint(&self) -> (uint, Option<uint>) { self.base.size_hint() }
+}
+
+pub struct FileNames<'a, R:'a> {
+    base: RawFiles<'a, R>,
+}
+
+impl<'a, R:Reader+Seek> Iterator<MaybeUTF8> for FileNames<'a, R> {
+    fn next(&mut self) -> Option<MaybeUTF8> { self.base.next().map(|i| i.unwrap().name) }
+    fn size_hint(&self) -> (uint, Option<uint>) { self.base.size_hint() }
 }
 
 impl ZipReader<File> {
@@ -80,28 +97,26 @@ impl<R:Reader+Seek> ZipReader<R> {
         }
     }
 
-    pub fn files_raw<'a>(&'a mut self) -> Files<'a, R> {
+    pub fn files_raw<'a>(&'a mut self) -> RawFiles<'a, R> {
         let cdr_offset = self.end_record.central_directory_offset;
-        Files {
+        RawFiles {
             zip_reader: self,
             current_entry: 0,
             current_offset: cdr_offset as u64
         }
     }
 
-    pub fn files<'a>(&'a mut self) -> iter::Map<Result<FileInfo, ZipError>, FileInfo,
-                                                Files<'a, R>> {
-        self.files_raw().map(|fileinfo_or_err| fileinfo_or_err.unwrap())
+    pub fn files<'a>(&'a mut self) -> Files<'a, R> {
+        Files { base: self.files_raw() }
     }
 
-    pub fn file_names<'a>(&'a mut self) -> iter::Map<Result<FileInfo, ZipError>, MaybeUTF8,
-                                                     Files<'a, R>> {
-        self.files_raw().map(|fileinfo_or_err| fileinfo_or_err.unwrap().name)
+    pub fn file_names<'a>(&'a mut self) -> FileNames<'a, R> {
+        FileNames { base: self.files_raw() }
     }
 
     pub fn info<T:BytesContainer>(&mut self, name: T) -> Result<FileInfo, ZipError> {
         for i in self.files() {
-            if i.name.equiv(&name) {
+            if i.name == name {
                 return Ok(i);
             }
         }

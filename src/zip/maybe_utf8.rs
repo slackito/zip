@@ -98,24 +98,24 @@ impl MaybeUTF8 {
     }
 }
 
-impl PartialEq for MaybeUTF8 {
-    fn eq(&self, other: &MaybeUTF8) -> bool {
-        self.as_bytes().eq(other.as_bytes())
+impl<S: BytesContainer> PartialEq<S> for MaybeUTF8 {
+    fn eq(&self, other: &S) -> bool {
+        self.as_bytes().eq(other.container_as_bytes())
     }
 }
 
-impl Eq for MaybeUTF8 {
+impl<S: BytesContainer> Eq<S> for MaybeUTF8 {
 }
 
-impl PartialOrd for MaybeUTF8 {
-    fn partial_cmp(&self, other: &MaybeUTF8) -> Option<Ordering> {
-        self.as_bytes().partial_cmp(other.as_bytes())
+impl<S: BytesContainer> PartialOrd<S> for MaybeUTF8 {
+    fn partial_cmp(&self, other: &S) -> Option<Ordering> {
+        self.as_bytes().partial_cmp(other.container_as_bytes())
     }
 }
 
-impl Ord for MaybeUTF8 {
-    fn cmp(&self, other: &MaybeUTF8) -> Ordering {
-        self.as_bytes().cmp(other.as_bytes())
+impl<S: BytesContainer> Ord<S> for MaybeUTF8 {
+    fn cmp(&self, other: &S) -> Ordering {
+        self.as_bytes().cmp(other.container_as_bytes())
     }
 }
 
@@ -130,12 +130,6 @@ impl BytesContainer for MaybeUTF8 {
 
     fn is_str(_: Option<&MaybeUTF8>) -> bool {
         false
-    }
-}
-
-impl<T:BytesContainer> Equiv<T> for MaybeUTF8 {
-    fn equiv(&self, other: &T) -> bool {
-        self.as_bytes() == other.container_as_bytes()
     }
 }
 

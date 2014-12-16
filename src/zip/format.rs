@@ -1,5 +1,7 @@
 //! Internal format stuffs.
 
+#![allow(missing_copy_implementations)]
+
 use std::fmt;
 use std::io::IoResult;
 use error::{ZipError, ZipResult};

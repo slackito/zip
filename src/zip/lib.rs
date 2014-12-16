@@ -1,4 +1,4 @@
-#![feature(macro_rules)]
+#![feature(macro_rules, default_type_params)]
 
 extern crate flate;
 
