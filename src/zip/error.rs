@@ -35,7 +35,7 @@ impl fmt::Show for ZipError {
 
 pub type ZipResult<T> = Result<T, ZipError>;
 
-macro_rules! try_io(
+macro_rules! try_io {
     ($e:expr) => (try!($e.map_err(::error::ZipError::IoError)))
-)
+}
 

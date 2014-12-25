@@ -35,7 +35,7 @@ impl MaybeUTF8 {
     pub fn as_str<'a>(&'a self) -> Option<&'a str> {
         match *self {
             MaybeUTF8::UTF8(ref s) => Some(s.as_slice()),
-            MaybeUTF8::Bytes(ref v) => str::from_utf8(v.as_slice()),
+            MaybeUTF8::Bytes(ref v) => str::from_utf8(v.as_slice()).ok(),
         }
     }
 
@@ -56,7 +56,7 @@ impl MaybeUTF8 {
             MaybeUTF8::UTF8(s) => Ok(s),
             MaybeUTF8::Bytes(v) => match String::from_utf8(v) {
                 Ok(s) => Ok(s),
-                Err(v) => Err(MaybeUTF8::Bytes(v)),
+                Err((v, _e)) => Err(MaybeUTF8::Bytes(v)),
             },
         }
     }
