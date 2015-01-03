@@ -56,7 +56,7 @@ impl MaybeUTF8 {
             MaybeUTF8::UTF8(s) => Ok(s),
             MaybeUTF8::Bytes(v) => match String::from_utf8(v) {
                 Ok(s) => Ok(s),
-                Err((v, _e)) => Err(MaybeUTF8::Bytes(v)),
+                Err(e) => Err(MaybeUTF8::Bytes(e.into_bytes())),
             },
         }
     }
@@ -104,7 +104,7 @@ impl<S: BytesContainer> PartialEq<S> for MaybeUTF8 {
     }
 }
 
-impl<S: BytesContainer> Eq<S> for MaybeUTF8 {
+impl Eq for MaybeUTF8 {
 }
 
 impl<S: BytesContainer> PartialOrd<S> for MaybeUTF8 {
@@ -113,8 +113,8 @@ impl<S: BytesContainer> PartialOrd<S> for MaybeUTF8 {
     }
 }
 
-impl<S: BytesContainer> Ord<S> for MaybeUTF8 {
-    fn cmp(&self, other: &S) -> Ordering {
+impl Ord for MaybeUTF8 {
+    fn cmp(&self, other: &MaybeUTF8) -> Ordering {
         self.as_bytes().cmp(other.container_as_bytes())
     }
 }
