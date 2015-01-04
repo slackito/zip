@@ -21,7 +21,8 @@ pub struct RawFiles<'a, R:'a> {
     current_offset: u64,
 }
 
-impl<'a, R:Reader+Seek> Iterator<Result<FileInfo, ZipError>> for RawFiles<'a, R> {
+impl<'a, R: Reader+Seek> Iterator for RawFiles<'a, R> {
+    type Item = Result<FileInfo, ZipError>;
     fn next(&mut self) -> Option<Result<FileInfo, ZipError>> {
         if self.current_entry < self.zip_reader.end_record.total_entry_count {
             match self.zip_reader.reader.seek(self.current_offset as i64, SeekSet) {
@@ -46,7 +47,8 @@ pub struct Files<'a, R:'a> {
     base: RawFiles<'a, R>,
 }
 
-impl<'a, R:Reader+Seek> Iterator<FileInfo> for Files<'a, R> {
+impl<'a, R: Reader+Seek> Iterator for Files<'a, R> {
+    type Item = FileInfo;
     fn next(&mut self) -> Option<FileInfo> { self.base.next().map(|i| i.unwrap()) }
     fn size_hint(&self) -> (uint, Option<uint>) { self.base.size_hint() }
 }
@@ -55,7 +57,8 @@ pub struct FileNames<'a, R:'a> {
     base: RawFiles<'a, R>,
 }
 
-impl<'a, R:Reader+Seek> Iterator<MaybeUTF8> for FileNames<'a, R> {
+impl<'a, R: Reader+Seek> Iterator for FileNames<'a, R> {
+    type Item = MaybeUTF8;
     fn next(&mut self) -> Option<MaybeUTF8> { self.base.next().map(|i| i.unwrap().name) }
     fn size_hint(&self) -> (uint, Option<uint>) { self.base.size_hint() }
 }

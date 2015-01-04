@@ -4,6 +4,7 @@
 
 use std::fmt;
 use std::io::IoResult;
+use std::num::ToPrimitive;
 use error::{ZipError, ZipResult};
 use maybe_utf8::MaybeUTF8;
 
@@ -40,7 +41,7 @@ fn ensure_u16_field_length(len: uint) -> ZipResult<u16> {
 
 /// An MS-DOS date and time format.
 /// This is not very accurate (2-second granularity), nor guaranteed to be valid.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct MsdosDateTime {
     time: u16,
     date: u16,

@@ -1,12 +1,14 @@
 //! Byte container optionally encoded as UTF-8.
 
-use std::{str, fmt};
-use std::borrow::Cow;
+use std::{str, char, fmt};
+use std::borrow::{IntoCow, Cow};
 use std::str::CowString;
 use std::default::Default;
 use std::path::BytesContainer;
+use std::cmp::Ordering;
+use std::iter::FromIterator;
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum MaybeUTF8 {
     UTF8(String),
     Bytes(Vec<u8>),
@@ -135,23 +137,23 @@ impl BytesContainer for MaybeUTF8 {
 
 // a workaround for multiple `FromIterator` implementations with differing type params
 trait MaybeUTF8FromIterator {
-    fn maybe_utf8_from_iter<I:Iterator<Self>>(iterator: I) -> MaybeUTF8;
+    fn maybe_utf8_from_iter<I: Iterator<Item=Self>>(iterator: I) -> MaybeUTF8;
 }
 
 impl MaybeUTF8FromIterator for char {
-    fn maybe_utf8_from_iter<I:Iterator<char>>(iterator: I) -> MaybeUTF8 {
+    fn maybe_utf8_from_iter<I: Iterator<Item=char>>(iterator: I) -> MaybeUTF8 {
         MaybeUTF8::from_str(FromIterator::from_iter(iterator))
     }
 }
 
 impl MaybeUTF8FromIterator for u8 {
-    fn maybe_utf8_from_iter<I:Iterator<u8>>(iterator: I) -> MaybeUTF8 {
+    fn maybe_utf8_from_iter<I: Iterator<Item=u8>>(iterator: I) -> MaybeUTF8 {
         MaybeUTF8::from_bytes(FromIterator::from_iter(iterator))
     }
 }
 
 impl<T:MaybeUTF8FromIterator> FromIterator<T> for MaybeUTF8 {
-    fn from_iter<I:Iterator<T>>(iterator: I) -> MaybeUTF8 {
+    fn from_iter<I: Iterator<Item=T>>(iterator: I) -> MaybeUTF8 {
         MaybeUTF8FromIterator::maybe_utf8_from_iter(iterator)
     }
 }
@@ -164,7 +166,27 @@ impl Default for MaybeUTF8 {
 
 impl fmt::Show for MaybeUTF8 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write(self.as_bytes())
+        match *self {
+            MaybeUTF8::UTF8(ref s) => fmt::Show::fmt(s, f),
+            MaybeUTF8::Bytes(ref v) => {
+                try!(write!(f, "b\""));
+                for &c in v.iter() {
+                    match c {
+                        b'\t' => try!(write!(f, "\\t")),
+                        b'\r' => try!(write!(f, "\\r")),
+                        b'\n' => try!(write!(f, "\\n")),
+                        b'\\' => try!(write!(f, "\\\\")),
+                        b'\'' => try!(write!(f, "\\'")),
+                        b'"'  => try!(write!(f, "\\\"")),
+                        b'\x20' ... b'\x7e' => try!(write!(f, "{}", c as char)),
+                        _ => try!(write!(f, "\\x{}{}",
+                                         char::from_digit((c as uint) >> 4, 16).unwrap(),
+                                         char::from_digit((c as uint) & 0xf, 16).unwrap()))
+                    }
+                }
+                write!(f, "\"")
+            }
+        }
     }
 }
 

@@ -1,7 +1,7 @@
 use format;
 use maybe_utf8::MaybeUTF8;
 
-#[deriving(PartialEq, Show, Clone, Copy)]
+#[derive(PartialEq, Show, Clone, Copy)]
 pub enum CompressionMethod {
     Store=0,
     Deflate=8,
@@ -17,7 +17,7 @@ impl CompressionMethod {
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct FileInfo {
     pub name:               MaybeUTF8,
     pub compression_method: CompressionMethod,
