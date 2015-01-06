@@ -2,7 +2,7 @@
 
 use std::{str, char, fmt};
 use std::borrow::{IntoCow, Cow};
-use std::str::CowString;
+use std::string::CowString;
 use std::default::Default;
 use std::path::BytesContainer;
 use std::cmp::Ordering;
@@ -41,8 +41,7 @@ impl MaybeUTF8 {
         }
     }
 
-    pub fn map_as_cow<'a>(&'a self,
-                                  as_cow: |&'a [u8]| -> CowString<'a>) -> CowString<'a> {
+    pub fn map_as_cow<'a>(&'a self, as_cow: |&'a [u8]| -> CowString<'a>) -> CowString<'a> {
         match *self {
             MaybeUTF8::UTF8(ref s) => s.as_slice().into_cow(),
             MaybeUTF8::Bytes(ref v) => as_cow(v.as_slice()),
@@ -135,26 +134,15 @@ impl BytesContainer for MaybeUTF8 {
     }
 }
 
-// a workaround for multiple `FromIterator` implementations with differing type params
-trait MaybeUTF8FromIterator {
-    fn maybe_utf8_from_iter<I: Iterator<Item=Self>>(iterator: I) -> MaybeUTF8;
-}
-
-impl MaybeUTF8FromIterator for char {
-    fn maybe_utf8_from_iter<I: Iterator<Item=char>>(iterator: I) -> MaybeUTF8 {
+impl FromIterator<char> for MaybeUTF8 {
+    fn from_iter<I: Iterator<Item=char>>(iterator: I) -> MaybeUTF8 {
         MaybeUTF8::from_str(FromIterator::from_iter(iterator))
     }
 }
 
-impl MaybeUTF8FromIterator for u8 {
-    fn maybe_utf8_from_iter<I: Iterator<Item=u8>>(iterator: I) -> MaybeUTF8 {
+impl FromIterator<u8> for MaybeUTF8 {
+    fn from_iter<I: Iterator<Item=u8>>(iterator: I) -> MaybeUTF8 {
         MaybeUTF8::from_bytes(FromIterator::from_iter(iterator))
-    }
-}
-
-impl<T:MaybeUTF8FromIterator> FromIterator<T> for MaybeUTF8 {
-    fn from_iter<I: Iterator<Item=T>>(iterator: I) -> MaybeUTF8 {
-        MaybeUTF8FromIterator::maybe_utf8_from_iter(iterator)
     }
 }
 
