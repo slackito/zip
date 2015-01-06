@@ -41,7 +41,8 @@ impl MaybeUTF8 {
         }
     }
 
-    pub fn map_as_cow<'a>(&'a self, as_cow: |&'a [u8]| -> CowString<'a>) -> CowString<'a> {
+    pub fn map_as_cow<'a, F>(&'a self, mut as_cow: F) -> CowString<'a>
+            where F: FnMut(&'a [u8]) -> CowString<'a> {
         match *self {
             MaybeUTF8::UTF8(ref s) => s.as_slice().into_cow(),
             MaybeUTF8::Bytes(ref v) => as_cow(v.as_slice()),
@@ -62,7 +63,8 @@ impl MaybeUTF8 {
         }
     }
 
-    pub fn map_into_str(self, into_str: |Vec<u8>| -> String) -> String {
+    pub fn map_into_str<F>(self, mut into_str: F) -> String
+            where F: FnMut(Vec<u8>) -> String {
         match self {
             MaybeUTF8::UTF8(s) => s,
             MaybeUTF8::Bytes(v) => into_str(v),
@@ -99,19 +101,28 @@ impl MaybeUTF8 {
     }
 }
 
-impl<S: BytesContainer> PartialEq<S> for MaybeUTF8 {
-    fn eq(&self, other: &S) -> bool {
-        self.as_bytes().eq(other.container_as_bytes())
-    }
+macro_rules! define_partial_eq_and_cmp {
+    ($($lty:ty#$lmeth:ident, $rty:ty#$rmeth:ident;)*) => ($(
+        impl<'a> PartialEq<$rty> for $lty {
+            fn eq(&self, other: &$rty) -> bool { self.$lmeth().eq(other.$rmeth()) }
+        }
+        impl<'a> PartialOrd<$rty> for $lty {
+            fn partial_cmp(&self, other: &$rty) -> Option<Ordering> {
+                self.$lmeth().partial_cmp(other.$rmeth())
+            }
+        }
+    )*)
+}
+
+define_partial_eq_and_cmp! {
+    MaybeUTF8#as_bytes, MaybeUTF8#as_bytes;
+    MaybeUTF8#as_bytes, &'a str#as_bytes;
+    &'a str#as_bytes, MaybeUTF8#as_bytes;
+    MaybeUTF8#as_bytes, &'a [u8]#as_slice;
+    &'a [u8]#as_slice, MaybeUTF8#as_bytes;
 }
 
 impl Eq for MaybeUTF8 {
-}
-
-impl<S: BytesContainer> PartialOrd<S> for MaybeUTF8 {
-    fn partial_cmp(&self, other: &S) -> Option<Ordering> {
-        self.as_bytes().partial_cmp(other.container_as_bytes())
-    }
 }
 
 impl Ord for MaybeUTF8 {

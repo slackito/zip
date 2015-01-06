@@ -117,9 +117,9 @@ impl<R:Reader+Seek> ZipReader<R> {
         FileNames { base: self.files_raw() }
     }
 
-    pub fn info<T:BytesContainer>(&mut self, name: T) -> Result<FileInfo, ZipError> {
+    pub fn info<T: BytesContainer>(&mut self, name: T) -> Result<FileInfo, ZipError> {
         for i in self.files() {
-            if i.name == name {
+            if i.name == name.container_as_bytes() {
                 return Ok(i);
             }
         }

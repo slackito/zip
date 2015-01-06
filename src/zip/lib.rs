@@ -1,5 +1,4 @@
 #![feature(macro_rules, default_type_params, associated_types)]
-#![feature(old_orphan_check)] // XXX maybe_utf8 requires this
 
 extern crate flate;
 
