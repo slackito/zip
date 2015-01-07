@@ -1,7 +1,5 @@
 //! A list of possible errors.
 
-#![macro_escape]
-
 use std::fmt;
 use std::io::IoError;
 

@@ -117,9 +117,7 @@ macro_rules! define_partial_eq_and_cmp {
 define_partial_eq_and_cmp! {
     MaybeUTF8#as_bytes, MaybeUTF8#as_bytes;
     MaybeUTF8#as_bytes, &'a str#as_bytes;
-    &'a str#as_bytes, MaybeUTF8#as_bytes;
     MaybeUTF8#as_bytes, &'a [u8]#as_slice;
-    &'a [u8]#as_slice, MaybeUTF8#as_bytes;
 }
 
 impl Eq for MaybeUTF8 {
