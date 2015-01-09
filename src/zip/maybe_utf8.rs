@@ -86,7 +86,7 @@ impl MaybeUTF8 {
         }
     }
 
-    pub fn len(&self) -> uint {
+    pub fn len(&self) -> usize {
         match *self {
             MaybeUTF8::UTF8(ref s) => s.len(),
             MaybeUTF8::Bytes(ref v) => v.len(),
@@ -102,7 +102,7 @@ impl MaybeUTF8 {
 }
 
 macro_rules! define_partial_eq_and_cmp {
-    ($($lty:ty#$lmeth:ident, $rty:ty#$rmeth:ident;)*) => ($(
+    ($($lty:ty:$lmeth:ident, $rty:ty:$rmeth:ident;)*) => ($(
         impl<'a> PartialEq<$rty> for $lty {
             fn eq(&self, other: &$rty) -> bool { self.$lmeth().eq(other.$rmeth()) }
         }
@@ -115,9 +115,9 @@ macro_rules! define_partial_eq_and_cmp {
 }
 
 define_partial_eq_and_cmp! {
-    MaybeUTF8#as_bytes, MaybeUTF8#as_bytes;
-    MaybeUTF8#as_bytes, &'a str#as_bytes;
-    MaybeUTF8#as_bytes, &'a [u8]#as_slice;
+    MaybeUTF8:as_bytes, MaybeUTF8:as_bytes;
+    MaybeUTF8:as_bytes, &'a str:as_bytes;
+    MaybeUTF8:as_bytes, &'a [u8]:as_slice;
 }
 
 impl Eq for MaybeUTF8 {
@@ -177,12 +177,21 @@ impl fmt::Show for MaybeUTF8 {
                         b'"'  => try!(write!(f, "\\\"")),
                         b'\x20' ... b'\x7e' => try!(write!(f, "{}", c as char)),
                         _ => try!(write!(f, "\\x{}{}",
-                                         char::from_digit((c as uint) >> 4, 16).unwrap(),
-                                         char::from_digit((c as uint) & 0xf, 16).unwrap()))
+                                         char::from_digit((c as usize) >> 4, 16).unwrap(),
+                                         char::from_digit((c as usize) & 0xf, 16).unwrap()))
                     }
                 }
                 write!(f, "\"")
             }
+        }
+    }
+}
+
+impl fmt::String for MaybeUTF8 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            MaybeUTF8::UTF8(ref s) => fmt::String::fmt(s, f),
+            MaybeUTF8::Bytes(ref v) => fmt::String::fmt(&String::from_utf8_lossy(&**v), f),
         }
     }
 }

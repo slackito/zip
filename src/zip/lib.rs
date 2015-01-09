@@ -1,3 +1,5 @@
+#![allow(unstable)]
+
 extern crate flate;
 
 pub use self::fileinfo::{CompressionMethod, FileInfo};

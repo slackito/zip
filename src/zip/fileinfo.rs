@@ -10,10 +10,10 @@ pub enum CompressionMethod {
 
 impl CompressionMethod {
     pub fn from_u16(x: u16) -> CompressionMethod {
-        let u = x as uint;
-        if      u == (CompressionMethod::Store   as uint) { CompressionMethod::Store }
-        else if u == (CompressionMethod::Deflate as uint) { CompressionMethod::Deflate }
-        else                                              { CompressionMethod::Unknown }
+        let u = x as usize;
+        if      u == (CompressionMethod::Store   as usize) { CompressionMethod::Store }
+        else if u == (CompressionMethod::Deflate as usize) { CompressionMethod::Deflate }
+        else                                               { CompressionMethod::Unknown }
     }
 }
 
@@ -22,7 +22,7 @@ pub struct FileInfo {
     pub name:               MaybeUTF8,
     pub compression_method: CompressionMethod,
     // (year, month, day, hour, minute, second)
-    pub last_modified_datetime: (uint, uint, uint, uint, uint, uint),
+    pub last_modified_datetime: (usize, usize, usize, usize, usize, usize),
     pub crc32:              u32,
     pub compressed_size:    u32,
     pub uncompressed_size:  u32,

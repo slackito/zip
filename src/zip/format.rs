@@ -8,7 +8,7 @@ use std::num::ToPrimitive;
 use error::{ZipError, ZipResult};
 use maybe_utf8::MaybeUTF8;
 
-fn read_maybe_utf8<T:Reader>(r: &mut T, should_be_utf8: bool, len: uint) -> ZipResult<MaybeUTF8> {
+fn read_maybe_utf8<T:Reader>(r: &mut T, should_be_utf8: bool, len: usize) -> ZipResult<MaybeUTF8> {
     let v = try_io!(r.read_exact(len));
     if should_be_utf8 {
         match String::from_utf8(v) {
@@ -32,7 +32,7 @@ fn write_maybe_utf8<T:Writer>(w: &mut T, should_be_utf8: bool, s: &MaybeUTF8) ->
     Ok(())
 }
 
-fn ensure_u16_field_length(len: uint) -> ZipResult<u16> {
+fn ensure_u16_field_length(len: usize) -> ZipResult<u16> {
     match len.to_u16() {
         Some(v) => Ok(v),
         None => Err(ZipError::TooLongField),
@@ -48,8 +48,8 @@ pub struct MsdosDateTime {
 }
 
 impl MsdosDateTime {
-    pub fn new(year: uint, month: uint, day: uint,
-               hour: uint, minute: uint, second: uint) -> MsdosDateTime {
+    pub fn new(year: usize, month: usize, day: usize,
+               hour: usize, minute: usize, second: usize) -> MsdosDateTime {
         // XXX no strict error check
         let year = year - 1980;
         MsdosDateTime {
@@ -66,14 +66,14 @@ impl MsdosDateTime {
         MsdosDateTime { time: 0, date: 0 }
     }
 
-    pub fn year  (&self) -> uint { ((self.date >>  9) & 0b1111111) as uint + 1980 }
-    pub fn month (&self) -> uint { ((self.date >>  5) &    0b1111) as uint }
-    pub fn day   (&self) -> uint { ( self.date        &   0b11111) as uint }
-    pub fn hour  (&self) -> uint { ((self.time >> 11) &   0b11111) as uint }
-    pub fn minute(&self) -> uint { ((self.time >>  5) &  0b111111) as uint }
-    pub fn second(&self) -> uint { ((self.time <<  1) &  0b111111) as uint }
+    pub fn year  (&self) -> usize { ((self.date >>  9) & 0b1111111) as usize + 1980 }
+    pub fn month (&self) -> usize { ((self.date >>  5) &    0b1111) as usize }
+    pub fn day   (&self) -> usize { ( self.date        &   0b11111) as usize }
+    pub fn hour  (&self) -> usize { ((self.time >> 11) &   0b11111) as usize }
+    pub fn minute(&self) -> usize { ((self.time >>  5) &  0b111111) as usize }
+    pub fn second(&self) -> usize { ((self.time <<  1) &  0b111111) as usize }
 
-    pub fn to_tuple(&self) -> (uint, uint, uint, uint, uint, uint) {
+    pub fn to_tuple(&self) -> (usize, usize, usize, usize, usize, usize) {
         (self.year(), self.month(), self.day(), self.hour(), self.minute(), self.second())
     }
 
@@ -151,7 +151,7 @@ impl LocalFileHeader {
     pub fn has_utf8_name(&self) -> bool              { (self.general_purpose_bit_flag & 2048) != 0 }
     pub fn uses_masking(&self) -> bool               { (self.general_purpose_bit_flag & 8192) != 0 }
 
-    pub fn total_size(&self) -> uint {
+    pub fn total_size(&self) -> usize {
         let local_file_header_fixed_size = 30;
         local_file_header_fixed_size + self.file_name.len() + self.extra_field.len()
     }
@@ -187,8 +187,8 @@ impl LocalFileHeader {
         h.crc32 = try_io!(r.read_le_u32());
         h.compressed_size = try_io!(r.read_le_u32());
         h.uncompressed_size = try_io!(r.read_le_u32());
-        let file_name_length = try_io!(r.read_le_u16()) as uint;
-        let extra_field_length = try_io!(r.read_le_u16()) as uint;
+        let file_name_length = try_io!(r.read_le_u16()) as usize;
+        let extra_field_length = try_io!(r.read_le_u16()) as usize;
         h.file_name = try!(read_maybe_utf8(r, h.has_utf8_name(), file_name_length));
         h.extra_field = try_io!(r.read_exact(extra_field_length));
 
@@ -223,12 +223,12 @@ impl LocalFileHeader {
         println!("version_needed_to_extract: {:#04x}", self.version_needed_to_extract);
         println!("general_purpose_bit_flag: {:#04x}", self.general_purpose_bit_flag);
         println!("compression_method: {:#04x}", self.compression_method);
-        println!("last_modified_datetime: {}", self.last_modified_datetime);
+        println!("last_modified_datetime: {:?}", self.last_modified_datetime);
         println!("crc32: {:#08x}", self.crc32);
         println!("compressed_size: {}", self.compressed_size);
         println!("uncompressed_size: {}", self.uncompressed_size);
-        println!("file_name: {}", self.file_name);
-        println!("extra_field: {}", self.extra_field);
+        println!("file_name: {:?}", self.file_name);
+        println!("extra_field: {:?}", self.extra_field);
 
         println!("FLAGS: ");
         println!("  is encrypted: {}", self.is_encrypted());
@@ -282,7 +282,7 @@ impl CentralDirectoryHeader {
     pub fn has_utf8_name(&self) -> bool              { (self.general_purpose_bit_flag & 2048) != 0 }
     pub fn uses_masking(&self) -> bool               { (self.general_purpose_bit_flag & 8192) != 0 }
 
-    pub fn total_size(&self) -> uint {
+    pub fn total_size(&self) -> usize {
         let central_directory_header_fixed_size = 46;
         central_directory_header_fixed_size
             + self.file_name.len()
@@ -328,9 +328,9 @@ impl CentralDirectoryHeader {
         h.crc32 = try_io!(r.read_le_u32());
         h.compressed_size = try_io!(r.read_le_u32());
         h.uncompressed_size = try_io!(r.read_le_u32());
-        let file_name_length = try_io!(r.read_le_u16()) as uint;
-        let extra_field_length = try_io!(r.read_le_u16()) as uint;
-        let file_comment_length = try_io!(r.read_le_u16()) as uint;
+        let file_name_length = try_io!(r.read_le_u16()) as usize;
+        let extra_field_length = try_io!(r.read_le_u16()) as usize;
+        let file_comment_length = try_io!(r.read_le_u16()) as usize;
         h.disk_number_start = try_io!(r.read_le_u16());
         h.internal_file_attributes = try_io!(r.read_le_u16());
         h.external_file_attributes = try_io!(r.read_le_u32());
@@ -418,7 +418,7 @@ impl EndOfCentralDirectoryRecord {
         h.total_entry_count = try_io!(r.read_le_u16());
         h.central_directory_size = try_io!(r.read_le_u32());
         h.central_directory_offset = try_io!(r.read_le_u32());
-        let comment_length = try_io!(r.read_le_u16()) as uint;
+        let comment_length = try_io!(r.read_le_u16()) as usize;
         h.comment = try_io!(r.read_exact(comment_length));
 
         // check for some things we don't support (yet?)

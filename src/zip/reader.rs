@@ -50,7 +50,7 @@ pub struct Files<'a, R:'a> {
 impl<'a, R: Reader+Seek> Iterator for Files<'a, R> {
     type Item = FileInfo;
     fn next(&mut self) -> Option<FileInfo> { self.base.next().map(|i| i.unwrap()) }
-    fn size_hint(&self) -> (uint, Option<uint>) { self.base.size_hint() }
+    fn size_hint(&self) -> (usize, Option<usize>) { self.base.size_hint() }
 }
 
 pub struct FileNames<'a, R:'a> {
@@ -60,7 +60,7 @@ pub struct FileNames<'a, R:'a> {
 impl<'a, R: Reader+Seek> Iterator for FileNames<'a, R> {
     type Item = MaybeUTF8;
     fn next(&mut self) -> Option<MaybeUTF8> { self.base.next().map(|i| i.unwrap().name) }
-    fn size_hint(&self) -> (uint, Option<uint>) { self.base.size_hint() }
+    fn size_hint(&self) -> (usize, Option<usize>) { self.base.size_hint() }
 }
 
 impl ZipReader<File> {
@@ -151,12 +151,12 @@ impl<R:Reader+Seek> ZipReader<R> {
 
     fn read_stored_file(&mut self, pos: i64, uncompressed_size: u32) -> IoResult<Vec<u8>> {
         try!(self.reader.seek(pos, SeekSet));
-        self.reader.read_exact(uncompressed_size as uint)
+        self.reader.read_exact(uncompressed_size as usize)
     }
 
     fn read_deflated_file(&mut self, pos: i64, compressed_size: u32, uncompressed_size: u32) -> IoResult<Vec<u8>> {
         try!(self.reader.seek(pos, SeekSet));
-        let compressed_bytes = try!(self.reader.read_exact(compressed_size as uint));
+        let compressed_bytes = try!(self.reader.read_exact(compressed_size as usize));
         let uncompressed_bytes = match flate::inflate_bytes(compressed_bytes.as_slice()) {
             Some(bytes) => bytes,
             None => return Err(IoError { kind: InvalidInput, desc: "decompression failure", detail: None })

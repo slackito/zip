@@ -1,3 +1,5 @@
+#![allow(unstable)]
+
 extern crate zip;
 
 use std::{os, io};
