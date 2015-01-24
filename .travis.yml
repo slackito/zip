@@ -9,6 +9,6 @@ env:
 script:
     - cargo build -v
     - cargo test -v
-    - rustdoc src/zip/lib.rs
+    - cargo doc -v
 after_script:
     - curl http://www.rust-ci.org/artifacts/put?t=$RUSTCI_TOKEN | sh
