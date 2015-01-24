@@ -49,7 +49,7 @@ pub struct Files<'a, R:'a> {
 
 impl<'a, R: Reader+Seek> Iterator for Files<'a, R> {
     type Item = FileInfo;
-    fn next(&mut self) -> Option<FileInfo> { self.base.next().map(|i| i.unwrap()) }
+    fn next(&mut self) -> Option<FileInfo> { self.base.next().map(|i| i.ok().unwrap()) }
     fn size_hint(&self) -> (usize, Option<usize>) { self.base.size_hint() }
 }
 
@@ -59,7 +59,7 @@ pub struct FileNames<'a, R:'a> {
 
 impl<'a, R: Reader+Seek> Iterator for FileNames<'a, R> {
     type Item = MaybeUTF8;
-    fn next(&mut self) -> Option<MaybeUTF8> { self.base.next().map(|i| i.unwrap().name) }
+    fn next(&mut self) -> Option<MaybeUTF8> { self.base.next().map(|i| i.ok().unwrap().name) }
     fn size_hint(&self) -> (usize, Option<usize>) { self.base.size_hint() }
 }
 

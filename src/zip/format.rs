@@ -90,11 +90,15 @@ impl MsdosDateTime {
     }
 }
 
-impl fmt::Show for MsdosDateTime {
+impl fmt::Debug for MsdosDateTime {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}-{:02}-{:02} {:02}:{:02}:{:02}",
                self.year(), self.month(), self.day(), self.hour(), self.minute(), self.second())
     }
+}
+
+impl fmt::Display for MsdosDateTime {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { fmt::Debug::fmt(self, f) }
 }
 
 //  http://www.pkware.com/documents/casestudies/APPNOTE.TXT

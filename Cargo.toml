@@ -20,3 +20,6 @@ path = "src/zip/lib.rs"
 
 name = "zip-demo"
 path = "src/zip-demo/main.rs"
+
+[dependencies]
+maybe_utf8 = "0.1.1"

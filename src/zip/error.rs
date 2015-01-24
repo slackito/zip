@@ -4,7 +4,7 @@ use std::fmt;
 use std::io::IoError;
 
 /// A list of possible errors. This is a supetset of `std::Io::IoError`.
-#[derive(PartialEq,Clone)]
+#[derive(PartialEq, Clone, Show)]
 pub enum ZipError {
     IoError(IoError),
     NotAZipFile,
@@ -15,7 +15,7 @@ pub enum ZipError {
     TooLongField,
 }
 
-impl fmt::Show for ZipError {
+impl fmt::Display for ZipError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             ZipError::IoError(ref e) => write!(f, "{}", e),
