@@ -3,7 +3,7 @@
 #![allow(missing_copy_implementations)]
 
 use std::fmt;
-use std::io::IoResult;
+use std::old_io::IoResult;
 use std::num::ToPrimitive;
 use error::{ZipError, ZipResult};
 use maybe_utf8::MaybeUTF8;
@@ -23,11 +23,11 @@ fn read_maybe_utf8<T:Reader>(r: &mut T, should_be_utf8: bool, len: usize) -> Zip
 fn write_maybe_utf8<T:Writer>(w: &mut T, should_be_utf8: bool, s: &MaybeUTF8) -> ZipResult<()> {
     if should_be_utf8 {
         match s.as_str() {
-            Some(s) => try_io!(w.write(s.as_bytes())),
+            Some(s) => try_io!(w.write_all(s.as_bytes())),
             None => return Err(ZipError::NonUTF8Field),
         }
     } else {
-        try_io!(w.write(s.as_bytes()));
+        try_io!(w.write_all(s.as_bytes()));
     }
     Ok(())
 }
@@ -218,7 +218,7 @@ impl LocalFileHeader {
         try_io!(w.write_le_u16(try!(ensure_u16_field_length(self.file_name.len()))));
         try_io!(w.write_le_u16(try!(ensure_u16_field_length(self.extra_field.len()))));
         try!(write_maybe_utf8(w, self.has_utf8_name(), &self.file_name));
-        try_io!(w.write(self.extra_field.as_slice()));
+        try_io!(w.write_all(self.extra_field.as_slice()));
         Ok(())
     }
 
@@ -367,7 +367,7 @@ impl CentralDirectoryHeader {
         try_io!(w.write_le_u32(self.external_file_attributes));
         try_io!(w.write_le_u32(self.relative_offset_of_local_header));
         try!(write_maybe_utf8(w, self.has_utf8_name(), &self.file_name));
-        try_io!(w.write(self.extra_field.as_slice()));
+        try_io!(w.write_all(self.extra_field.as_slice()));
         try!(write_maybe_utf8(w, self.has_utf8_name(), &self.file_comment));
         Ok(())
     }
@@ -440,7 +440,7 @@ impl EndOfCentralDirectoryRecord {
         try_io!(w.write_le_u32(self.central_directory_size));
         try_io!(w.write_le_u32(self.central_directory_offset));
         try_io!(w.write_le_u16(try!(ensure_u16_field_length(self.comment.len()))));
-        try_io!(w.write(self.comment.as_slice()));
+        try_io!(w.write_all(self.comment.as_slice()));
         Ok(())
     }
 

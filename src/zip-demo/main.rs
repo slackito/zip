@@ -2,7 +2,8 @@
 
 extern crate zip;
 
-use std::{os, io};
+use std::os;
+use std::old_io as io;
 
 fn main() {
     let args = os::args();

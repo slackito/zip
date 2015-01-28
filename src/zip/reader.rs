@@ -1,6 +1,6 @@
-use std::io::File;
-use std::io::{Reader, Writer, Seek, SeekSet, SeekEnd};
-use std::io::{IoResult, IoError, InvalidInput};
+use std::old_io::File;
+use std::old_io::{Reader, Writer, Seek, SeekSet, SeekEnd};
+use std::old_io::{IoResult, IoError, InvalidInput};
 use std::iter::range_inclusive;
 use std::path::BytesContainer;
 use error::ZipError;
@@ -170,7 +170,7 @@ impl<R:Reader+Seek> ZipReader<R> {
     // blocks of a fixed size from Reader to Writer
     pub fn extract<T:Writer>(&mut self, f: &FileInfo, writer: &mut T) -> Result<(), ZipError> {
         match self.read(f) {
-            Ok(bytes) => { try_io!(writer.write(bytes.as_slice())); Ok(()) },
+            Ok(bytes) => { try_io!(writer.write_all(bytes.as_slice())); Ok(()) },
             Err(x) => Err(x)
         }
     }
