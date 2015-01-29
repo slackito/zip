@@ -1,4 +1,4 @@
-#![allow(unstable)]
+#![feature(core, io, path, rustc_private)]
 
 extern crate flate;
 extern crate maybe_utf8;

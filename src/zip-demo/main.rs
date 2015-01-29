@@ -1,4 +1,4 @@
-#![allow(unstable)]
+#![feature(core, os, io, path)]
 
 extern crate zip;
 
@@ -9,7 +9,7 @@ fn main() {
     let args = os::args();
 
     // open a zip archive
-    let zip_path = Path::new(args.as_slice()[1].as_slice());
+    let zip_path = Path::new(&args[1][]);
     let mut z = zip::ZipReader::open(&zip_path).unwrap();
 
     // list files in archive
@@ -21,9 +21,9 @@ fn main() {
 
     // if we have two arguments, extract file
     if args.len() > 2 {
-        let dest_path = Path::new(args.as_slice()[2].as_slice());
+        let dest_path = Path::new(&args[2][]);
         let mut out_stream = io::File::create(&dest_path).unwrap();
-        let f = z.info(args.as_slice()[2].as_slice()).unwrap();
+        let f = z.info(&args[2][]).unwrap();
         let _ = z.extract(&f, &mut out_stream);
     }
 }
