@@ -4,27 +4,37 @@ extern crate zip;
 
 use std::os;
 use std::old_io as io;
+use zip::ZipReader;
 
 fn main() {
     let args = os::args();
-
-    // open a zip archive
-    let zip_path = Path::new(&args[1][]);
-    let mut z = zip::ZipReader::open(&zip_path).unwrap();
-
-    // list files in archive
-    for i in z.files() {
-        let (year, month, day, hour, minute, second) = i.last_modified_datetime;
-        println!("{} => {} bytes, {} bytes compressed, last modified: {}/{}/{} {}:{}:{}, encrypted: {}, CRC32={:#08x}",
-            i.name, i.uncompressed_size, i.compressed_size, year, month, day, hour, minute, second, i.is_encrypted, i.crc32);
-    }
-
-    // if we have two arguments, extract file
-    if args.len() > 2 {
-        let dest_path = Path::new(&args[2][]);
-        let mut out_stream = io::File::create(&dest_path).unwrap();
-        let f = z.info(&args[2][]).unwrap();
-        let _ = z.extract(&f, &mut out_stream);
+    match args.len()
+    {
+        2 => list(&mut zip_file(&args[1][])),
+        3 => extract(&mut zip_file(&args[1][]), &args[2][]),
+        _ => usage(&args[0][])
     }
 }
 
+fn zip_file(path: &str) -> ZipReader<io::File>{
+    zip::ZipReader::open(&Path::new(path)).unwrap()
+}
+
+fn list(reader: &mut ZipReader<io::File>)->(){
+    for file in reader.files(){
+        let (year, month, day, hour, minute, second) = file.last_modified_datetime;
+        let mod_time = format!("{:04}-{:02}-{:02} {:02}:{:02}:{:02}", year, month, day, hour, minute, second);
+        println!("{} ({}): bytes: {:10}, compressed: {:10}",
+            file.name, mod_time, file.compressed_size, file.uncompressed_size);
+    }
+}
+
+fn extract(zip: &mut ZipReader<io::File>, file: &str)->(){
+    let mut stream = io::File::create(&Path::new(file)).unwrap();
+    let info = zip.info(file).unwrap();
+    zip.extract(&info, &mut stream).unwrap();
+}
+
+fn usage(this: &str)->(){
+    println!("Usage: {} [file.zip] [file_to_extract]" , this);
+}
