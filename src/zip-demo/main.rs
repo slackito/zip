@@ -1,4 +1,4 @@
-#![feature(core, os, io, path)]
+#![feature(os, io, path)]
 
 extern crate zip;
 
@@ -6,7 +6,7 @@ use std::os;
 use std::old_io as io;
 use zip::ZipReader;
 
-fn main() {
+pub fn main() {
     let args = os::args();
     match args.len()
     {

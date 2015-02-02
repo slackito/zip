@@ -4,7 +4,7 @@ use std::fmt;
 use std::old_io::IoError;
 
 /// A list of possible errors. This is a supetset of `std::Io::IoError`.
-#[derive(PartialEq, Clone, Show)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum ZipError {
     IoError(IoError),
     NotAZipFile,
