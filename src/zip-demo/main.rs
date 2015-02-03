@@ -1,10 +1,10 @@
 #![feature(core, os, io, path)]
-
 extern crate zip;
 
 use std::os;
 use std::old_io::File;
 use zip::ZipReader;
+use zip::fileinfo::FileInfo;
 
 fn main() {
     let args = os::args();
@@ -27,10 +27,13 @@ fn zip_file(file: &str) -> ZipReader<File>{
     do_or_die!(zip::ZipReader::open(&Path::new(file)))
 }
 
-fn out_file(file: &str)->File{
+fn output_file(file: &str)->File{
     do_or_die!(File::create(&Path::new(file)))
 }
 
+fn zipped_file_info(zip: &mut ZipReader<File>, file: &str) -> FileInfo{
+    do_or_die!(zip.info(file))
+}
 
 fn list(reader: &mut ZipReader<File>)->(){
     for file in reader.files(){
@@ -42,11 +45,11 @@ fn list(reader: &mut ZipReader<File>)->(){
 }
 
 fn extract(zip: &mut ZipReader<File>, file: &str)->(){
-    let mut out = out_file(file);
-    let info = do_or_die!(zip.info(file));
+    let mut out = output_file(file);
+    let info = zipped_file_info(zip, file);
     do_or_die!(zip.extract(&info, &mut out));
 }
 
 fn usage(this: &str)->(){
-    println!("Usage: {} [file.zip] [file_to_extract]" , this);
+    println!("Usage: {} [file.zip] [file_to_extract]", this);
 }
