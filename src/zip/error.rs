@@ -18,7 +18,7 @@ pub enum ZipError {
 impl fmt::Display for ZipError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            ZipError::IoError(ref e) => write!(f, "{}", e),
+            ZipError::IoError(ref e) => write!(f, "{}", e.detail.clone().unwrap_or(String::from_str(e.desc))),
             ZipError::NotAZipFile => write!(f, "not a ZIP file"),
             ZipError::CrcError => write!(f, "CRC mismatch"),
             ZipError::FileNotFoundInArchive => write!(f, "file not found in archive"),
@@ -36,4 +36,6 @@ pub type ZipResult<T> = Result<T, ZipError>;
 macro_rules! try_io {
     ($e:expr) => (try!($e.map_err(::error::ZipError::IoError)))
 }
+
+
 

@@ -3,7 +3,7 @@
 extern crate zip;
 
 use std::os;
-use std::old_io as io;
+use std::old_io::File;
 use zip::ZipReader;
 
 fn main() {
@@ -16,11 +16,23 @@ fn main() {
     }
 }
 
-fn zip_file(path: &str) -> ZipReader<io::File>{
-    zip::ZipReader::open(&Path::new(path)).unwrap()
+macro_rules! do_or_die{
+    ($expr:expr) => (match $expr {
+        Ok(val) => val,
+        Err(err) => {println!("{}",err); panic!()}
+    })
 }
 
-fn list(reader: &mut ZipReader<io::File>)->(){
+fn zip_file(file: &str) -> ZipReader<File>{
+    do_or_die!(zip::ZipReader::open(&Path::new(file)))
+}
+
+fn out_file(file: &str)->File{
+    do_or_die!(File::create(&Path::new(file)))
+}
+
+
+fn list(reader: &mut ZipReader<File>)->(){
     for file in reader.files(){
         let (year, month, day, hour, minute, second) = file.last_modified_datetime;
         let mod_time = format!("{:04}-{:02}-{:02} {:02}:{:02}:{:02}", year, month, day, hour, minute, second);
@@ -29,10 +41,10 @@ fn list(reader: &mut ZipReader<io::File>)->(){
     }
 }
 
-fn extract(zip: &mut ZipReader<io::File>, file: &str)->(){
-    let mut stream = io::File::create(&Path::new(file)).unwrap();
-    let info = zip.info(file).unwrap();
-    zip.extract(&info, &mut stream).unwrap();
+fn extract(zip: &mut ZipReader<File>, file: &str)->(){
+    let mut out = out_file(file);
+    let info = do_or_die!(zip.info(file));
+    do_or_die!(zip.extract(&info, &mut out));
 }
 
 fn usage(this: &str)->(){
