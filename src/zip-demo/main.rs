@@ -1,13 +1,13 @@
 #![feature(core, os, io, path)]
 
 extern crate zip;
-
+use std::os;
 use std::old_io::File;
 use zip::ZipReader;
 use zip::fileinfo::FileInfo;
 
 fn main() {
-    let args = std::os::args();
+    let args = os::args();
     match args.len()
     {
         2 => list(&mut zip_file(&args[1][])),
