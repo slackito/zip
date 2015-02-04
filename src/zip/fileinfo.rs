@@ -1,7 +1,7 @@
 use format;
 use maybe_utf8::MaybeUTF8;
 
-#[derive(PartialEq, Show, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub enum CompressionMethod {
     Store=0,
     Deflate=8,
