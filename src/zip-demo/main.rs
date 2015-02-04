@@ -10,9 +10,9 @@ use zip::fileinfo::FileInfo;
 fn main() {
     let args = os::args();
     match args.len(){
-        2 => zip_content(&mut zip_file(&args[1][])),
+        2 => list_content(&mut zip_file(&args[1][])),
         3 => extract_file(&mut zip_file(&args[1][]), &args[2][]),
-        _ => usage(&args[0][])
+        _ => print_usage(&args[0][])
     }
 }
 
@@ -35,7 +35,7 @@ fn zipped_file_info(zip: &mut ZipReader<File>, file: &str) -> FileInfo{
     do_or_die!(zip.info(file))
 }
 
-fn zip_content(reader: &mut ZipReader<File>)->(){
+fn list_content(reader: &mut ZipReader<File>)->(){
     for file in reader.files(){
         let (year, month, day, hour, minute, second) = file.last_modified_datetime;
         let mod_time = format!("{:04}-{:02}-{:02} {:02}:{:02}:{:02}", year, month, day, hour, minute, second);
@@ -50,6 +50,6 @@ fn extract_file(zip: &mut ZipReader<File>, file: &str)->(){
     do_or_die!(zip.extract(&info, &mut out));
 }
 
-fn usage(this: &str)->(){
+fn print_usage(this: &str)->(){
     println!("Usage: {} [file.zip] [file_to_extract]", this);
 }
