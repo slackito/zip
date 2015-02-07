@@ -1,26 +1,41 @@
-#![feature(os, io, path)]
+#![feature(core, os, io, path)]
 
 extern crate zip;
 
 use std::os;
-use std::old_io as io;
+use std::old_io::File;
 use zip::ZipReader;
+use zip::fileinfo::FileInfo;
 
-pub fn main() {
+fn main() {
     let args = os::args();
-    match args.len()
-    {
-        2 => list(&mut zip_file(&args[1][])),
-        3 => extract(&mut zip_file(&args[1][]), &args[2][]),
-        _ => usage(&args[0][])
+    match args.len(){
+        2 => list_content(&mut zip_file(&args[1][])),
+        3 => extract_file(&mut zip_file(&args[1][]), &args[2][]),
+        _ => print_usage(&args[0][])
     }
 }
 
-fn zip_file(path: &str) -> ZipReader<io::File>{
-    zip::ZipReader::open(&Path::new(path)).unwrap()
+macro_rules! do_or_die{
+    ($expr:expr) => (match $expr {
+        Ok(val) => val,
+        Err(err) => {println!("{}",err); panic!()}
+    })
 }
 
-fn list(reader: &mut ZipReader<io::File>)->(){
+fn zip_file(file: &str) -> ZipReader<File>{
+    do_or_die!(zip::ZipReader::open(&Path::new(file)))
+}
+
+fn output_file(file: &str)->File{
+    do_or_die!(File::create(&Path::new(file)))
+}
+
+fn zipped_file_info(zip: &mut ZipReader<File>, file: &str) -> FileInfo{
+    do_or_die!(zip.info(file))
+}
+
+fn list_content(reader: &mut ZipReader<File>)->(){
     for file in reader.files(){
         let (year, month, day, hour, minute, second) = file.last_modified_datetime;
         let mod_time = format!("{:04}-{:02}-{:02} {:02}:{:02}:{:02}", year, month, day, hour, minute, second);
@@ -29,12 +44,12 @@ fn list(reader: &mut ZipReader<io::File>)->(){
     }
 }
 
-fn extract(zip: &mut ZipReader<io::File>, file: &str)->(){
-    let mut stream = io::File::create(&Path::new(file)).unwrap();
-    let info = zip.info(file).unwrap();
-    zip.extract(&info, &mut stream).unwrap();
+fn extract_file(zip: &mut ZipReader<File>, file: &str)->(){
+    let mut out = output_file(file);
+    let info = zipped_file_info(zip, file);
+    do_or_die!(zip.extract(&info, &mut out));
 }
 
-fn usage(this: &str)->(){
-    println!("Usage: {} [file.zip] [file_to_extract]" , this);
+fn print_usage(this: &str)->(){
+    println!("Usage: {} [file.zip] [file_to_extract]", this);
 }
