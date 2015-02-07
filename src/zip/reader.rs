@@ -2,9 +2,8 @@ use std::old_io::File;
 use std::old_io::{Reader, Writer, Seek, SeekSet, SeekEnd};
 use std::old_io::{IoResult, IoError, InvalidInput};
 use std::iter::range_inclusive;
-use std::path::BytesContainer;
 use error::ZipError;
-use maybe_utf8::MaybeUTF8;
+use maybe_utf8::{MaybeUtf8Slice, MaybeUtf8Buf, IntoMaybeUtf8};
 use flate;
 use crc32;
 use format;
@@ -58,8 +57,10 @@ pub struct FileNames<'a, R:'a> {
 }
 
 impl<'a, R: Reader+Seek> Iterator for FileNames<'a, R> {
-    type Item = MaybeUTF8;
-    fn next(&mut self) -> Option<MaybeUTF8> { self.base.next().map(|i| i.ok().unwrap().name) }
+    type Item = MaybeUtf8Buf;
+    fn next(&mut self) -> Option<MaybeUtf8Buf> {
+        self.base.next().map(|i| i.ok().unwrap().name)
+    }
     fn size_hint(&self) -> (usize, Option<usize>) { self.base.size_hint() }
 }
 
@@ -117,9 +118,11 @@ impl<R:Reader+Seek> ZipReader<R> {
         FileNames { base: self.files_raw() }
     }
 
-    pub fn info<T: BytesContainer>(&mut self, name: T) -> Result<FileInfo, ZipError> {
+    pub fn info<'a, T>(&mut self, name: T) -> Result<FileInfo, ZipError>
+            where T: IntoMaybeUtf8<MaybeUtf8Slice<'a>> {
+        let name = name.into_maybe_utf8();
         for i in self.files() {
-            if i.name == name.container_as_bytes() {
+            if i.name == name.as_bytes() {
                 return Ok(i);
             }
         }

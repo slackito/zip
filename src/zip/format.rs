@@ -6,21 +6,22 @@ use std::fmt;
 use std::old_io::IoResult;
 use std::num::ToPrimitive;
 use error::{ZipError, ZipResult};
-use maybe_utf8::MaybeUTF8;
+use maybe_utf8::{MaybeUtf8Buf, MaybeUtf8Slice};
 
-fn read_maybe_utf8<T:Reader>(r: &mut T, should_be_utf8: bool, len: usize) -> ZipResult<MaybeUTF8> {
+fn read_maybe_utf8<T: Reader>(r: &mut T, should_be_utf8: bool,
+                              len: usize) -> ZipResult<MaybeUtf8Buf> {
     let v = try_io!(r.read_exact(len));
     if should_be_utf8 {
         match String::from_utf8(v) {
-            Ok(s) => Ok(MaybeUTF8::from_str(s)),
+            Ok(s) => Ok(MaybeUtf8Buf::from_str(s)),
             Err(_) => Err(ZipError::NonUTF8Field),
         }
     } else {
-        Ok(MaybeUTF8::from_bytes(v))
+        Ok(MaybeUtf8Buf::from_bytes(v))
     }
 }
 
-fn write_maybe_utf8<T:Writer>(w: &mut T, should_be_utf8: bool, s: &MaybeUTF8) -> ZipResult<()> {
+fn write_maybe_utf8<T:Writer>(w: &mut T, should_be_utf8: bool, s: MaybeUtf8Slice) -> ZipResult<()> {
     if should_be_utf8 {
         match s.as_str() {
             Some(s) => try_io!(w.write_all(s.as_bytes())),
@@ -140,7 +141,7 @@ pub struct LocalFileHeader {
     pub crc32:                     u32,
     pub compressed_size:           u32,
     pub uncompressed_size:         u32,
-    pub file_name:                 MaybeUTF8,
+    pub file_name:                 MaybeUtf8Buf,
     pub extra_field:               Vec<u8>
 }
 
@@ -170,7 +171,7 @@ impl LocalFileHeader {
             crc32: 0,
             compressed_size: 0,
             uncompressed_size: 0,
-            file_name: MaybeUTF8::new(),
+            file_name: MaybeUtf8Buf::new(),
             extra_field: Vec::new()
         }
     }
@@ -217,7 +218,7 @@ impl LocalFileHeader {
         try_io!(w.write_le_u32(self.uncompressed_size));
         try_io!(w.write_le_u16(try!(ensure_u16_field_length(self.file_name.len()))));
         try_io!(w.write_le_u16(try!(ensure_u16_field_length(self.extra_field.len()))));
-        try!(write_maybe_utf8(w, self.has_utf8_name(), &self.file_name));
+        try!(write_maybe_utf8(w, self.has_utf8_name(), self.file_name.to_slice()));
         try_io!(w.write_all(&self.extra_field[]));
         Ok(())
     }
@@ -273,9 +274,9 @@ pub struct CentralDirectoryHeader {
     pub internal_file_attributes: u16,
     pub external_file_attributes: u32,
     pub relative_offset_of_local_header: u32,
-    pub file_name: MaybeUTF8,
+    pub file_name: MaybeUtf8Buf,
     pub extra_field: Vec<u8>,
-    pub file_comment: MaybeUTF8,
+    pub file_comment: MaybeUtf8Buf,
 }
 
 impl CentralDirectoryHeader {
@@ -309,9 +310,9 @@ impl CentralDirectoryHeader {
             internal_file_attributes: 0,
             external_file_attributes: 0,
             relative_offset_of_local_header: 0,
-            file_name: MaybeUTF8::new(),
+            file_name: MaybeUtf8Buf::new(),
             extra_field: Vec::new(),
-            file_comment: MaybeUTF8::new(),
+            file_comment: MaybeUtf8Buf::new(),
         }
     }
 
@@ -366,9 +367,9 @@ impl CentralDirectoryHeader {
         try_io!(w.write_le_u16(self.internal_file_attributes));
         try_io!(w.write_le_u32(self.external_file_attributes));
         try_io!(w.write_le_u32(self.relative_offset_of_local_header));
-        try!(write_maybe_utf8(w, self.has_utf8_name(), &self.file_name));
+        try!(write_maybe_utf8(w, self.has_utf8_name(), self.file_name.to_slice()));
         try_io!(w.write_all(&self.extra_field[]));
-        try!(write_maybe_utf8(w, self.has_utf8_name(), &self.file_comment));
+        try!(write_maybe_utf8(w, self.has_utf8_name(), self.file_comment.to_slice()));
         Ok(())
     }
 }

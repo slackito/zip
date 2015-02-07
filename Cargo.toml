@@ -22,4 +22,4 @@ name = "zip-demo"
 path = "src/zip-demo/main.rs"
 
 [dependencies]
-maybe_utf8 = "0.1.2"
+maybe_utf8 = "0.2.1"

@@ -1,5 +1,5 @@
 use format;
-use maybe_utf8::MaybeUTF8;
+use maybe_utf8::MaybeUtf8Buf;
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum CompressionMethod {
@@ -19,7 +19,7 @@ impl CompressionMethod {
 
 #[derive(Clone)]
 pub struct FileInfo {
-    pub name:               MaybeUTF8,
+    pub name:               MaybeUtf8Buf,
     pub compression_method: CompressionMethod,
     // (year, month, day, hour, minute, second)
     pub last_modified_datetime: (usize, usize, usize, usize, usize, usize),

@@ -1,18 +1,19 @@
-#![feature(core, os, io, path)]
+#![feature(core, os, env, io, path)]
 
 extern crate zip;
 
-use std::os;
+use std::env;
 use std::old_io::File;
 use zip::ZipReader;
 use zip::fileinfo::FileInfo;
 
-fn main() {
-    let args = os::args();
+// this is public so that rustdoc doesn't complain
+pub fn main() {
+    let args: Vec<_> = env::args().map(|s| s.to_string_lossy().into_owned()).collect(); // XXX
     match args.len(){
-        2 => list_content(&mut zip_file(&args[1][])),
-        3 => extract_file(&mut zip_file(&args[1][]), &args[2][]),
-        _ => print_usage(&args[0][])
+        2 => list_content(&mut zip_file(&args[1])),
+        3 => extract_file(&mut zip_file(&args[1]), &args[2]),
+        _ => print_usage(&args[0])
     }
 }
 
