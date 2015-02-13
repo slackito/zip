@@ -1,4 +1,4 @@
-#![feature(core, os, env, io, path)]
+#![feature(core, env, io, path)]
 
 extern crate zip;
 
@@ -9,7 +9,7 @@ use zip::fileinfo::FileInfo;
 
 // this is public so that rustdoc doesn't complain
 pub fn main() {
-    let args: Vec<_> = env::args().map(|s| s.to_string_lossy().into_owned()).collect(); // XXX
+    let args: Vec<_> = env::args().collect(); // XXX
     match args.len(){
         2 => list_content(&mut zip_file(&args[1])),
         3 => extract_file(&mut zip_file(&args[1]), &args[2]),

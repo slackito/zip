@@ -1,4 +1,4 @@
-#![feature(core, io, rustc_private)]
+#![feature(core, io, path, collections, rustc_private)]
 
 extern crate flate;
 extern crate maybe_utf8;
