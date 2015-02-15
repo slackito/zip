@@ -1,8 +1,9 @@
+
 use std::old_io::File;
 use std::old_io::{Reader, Writer, Seek, SeekSet, SeekEnd};
 use std::old_io::{IoResult, IoError, InvalidInput};
 use std::iter::range_inclusive;
-use std::path::BytesContainer;
+use std::old_path::BytesContainer;
 use error::ZipError;
 use maybe_utf8::MaybeUTF8;
 use flate;
