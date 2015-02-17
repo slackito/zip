@@ -2,21 +2,17 @@
 
 extern crate zip;
 
+use std::env;
 use std::old_io::File;
 use zip::ZipReader;
 use zip::fileinfo::FileInfo;
 
 fn main() {
-
-    for arg in std::env::args() {
-            println!("{:?}", arg.into_string());
-    }
-
-    let args = std::os::args();
+    let args: Vec<_> = env::args().map(|s| s.into_string().unwrap()).collect();
     match args.len(){
-        2 => list_content(&mut zip_file(&args[1][])),
-        3 => extract_file(&mut zip_file(&args[1][]), &args[2][]),
-        _ => print_usage(&args[0][])
+        2 => list_content(&mut zip_file(&args[1])),
+        3 => extract_file(&mut zip_file(&args[1]), &args[2]),
+        _ => print_usage(&args[0])
     }
 }
 
