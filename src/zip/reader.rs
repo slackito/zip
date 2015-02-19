@@ -1,7 +1,7 @@
 
 use std::old_io::File;
 use std::old_io::{Reader, Writer, Seek, SeekSet, SeekEnd};
-use std::old_io::{IoResult, IoError, InvalidInput};
+//use std::old_io::{IoResult, IoError, InvalidInput};
 use std::iter::range_inclusive;
 use std::old_path::BytesContainer;
 use error::ZipError;
@@ -127,50 +127,41 @@ impl<R:Reader+Seek> ZipReader<R> {
         Err(ZipError::FileNotFoundInArchive)
     }
 
-    // TODO: Create a Reader for the cases when you don't want to decompress the whole file
-    pub fn read(&mut self, f: &FileInfo) -> Result<Vec<u8>, ZipError> {
+    pub fn read_file(&mut self, f: &FileInfo) -> Result<Vec<u8>, ZipError> {
         try_io!(self.reader.seek(f.local_file_header_offset as i64, SeekSet));
-        let h = try!(format::LocalFileHeader::read(&mut self.reader));
-        let file_offset = f.local_file_header_offset as i64 + h.total_size() as i64;
-
-        let result =
-            match CompressionMethod::from_u16(h.compression_method) {
-                CompressionMethod::Store =>
-                    self.read_stored_file(file_offset, h.uncompressed_size),
-                CompressionMethod::Deflate =>
-                    self.read_deflated_file(file_offset, h.compressed_size, h.uncompressed_size),
-                _ => panic!()
-            };
-        let result = try_io!(result);
-
-        // Check the CRC32 of the result against the one stored in the header
-        let crc = crc32::crc32(&result[]);
-
-        if crc == h.crc32 { Ok(result) }
-        else { Err(ZipError::CrcError) }
+        let header = try!(format::LocalFileHeader::read(&mut self.reader));
+        header.print();
+        let file_pos = f.local_file_header_offset as i64 + header.total_size() as i64;
+        let file_len = header.compressed_size as usize;        
+        let data = try!(self.unzip_block(file_pos, file_len, CompressionMethod::from_u16(header.compression_method)));
+        if  crc32::crc32(&data[]) == header.crc32 { 
+            Ok(data) 
+        } else { 
+            Err(ZipError::CrcError) 
+        }
+    }
+    
+    fn unzip_block(&mut self, pos: i64, len: usize, method: CompressionMethod) -> Result<Vec<u8>, ZipError> {
+        try_io!(self.reader.seek(pos, SeekSet));
+        let compressed_data = try_io!(self.reader.read_exact(len));
+        match method {
+                CompressionMethod::Store    =>  Ok(compressed_data),
+                CompressionMethod::Deflate  =>  self.unzip(compressed_data),
+                _ => panic!("Usupported CompressionMethod")
+        }        
     }
 
-    fn read_stored_file(&mut self, pos: i64, uncompressed_size: u32) -> IoResult<Vec<u8>> {
-        try!(self.reader.seek(pos, SeekSet));
-        self.reader.read_exact(uncompressed_size as usize)
-    }
-
-    fn read_deflated_file(&mut self, pos: i64, compressed_size: u32, uncompressed_size: u32) -> IoResult<Vec<u8>> {
-        try!(self.reader.seek(pos, SeekSet));
-        let compressed_bytes = try!(self.reader.read_exact(compressed_size as usize));
-        let uncompressed_bytes = match flate::inflate_bytes(&compressed_bytes[]) {
-            Some(bytes) => bytes,
-            None => return Err(IoError { kind: InvalidInput, desc: "decompression failure", detail: None })
-        };
-        assert!(uncompressed_bytes.len() as u32 == uncompressed_size);
-        // FIXME try not to copy the buffer, or switch to the incremental fashion
-        Ok(uncompressed_bytes.to_vec())
+    fn unzip(&mut self, data: Vec<u8>) -> Result<Vec<u8>, ZipError> { 
+        match flate::inflate_bytes(&data[]){ 
+            Some(ok) => Ok(ok.to_vec()),
+            None => return Err(ZipError::DecompressionFailure),
+        }
     }
 
     // when we make read return a Reader, we will be able to loop here and copy
     // blocks of a fixed size from Reader to Writer
     pub fn extract<T:Writer>(&mut self, f: &FileInfo, writer: &mut T) -> Result<(), ZipError> {
-        match self.read(f) {
+        match self.read_file(f) {
             Ok(bytes) => { try_io!(writer.write_all(&bytes[])); Ok(()) },
             Err(x) => Err(x)
         }
