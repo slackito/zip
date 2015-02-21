@@ -126,11 +126,17 @@ impl<R:Reader+Seek> ZipReader<R> {
         Err(ZipError::FileNotFoundInArchive)
     }
 
+
+    fn read_header(&mut self, f: &FileInfo) -> format::LocalFileHeader {
+        try_io!(self.reader.seek(f.local_file_header_offset as i64, SeekSet));
+        let header = try!(format::LocalFileHeader::read(&mut self.reader));        
+    }
+
+
     pub fn read(&mut self, f: &FileInfo) -> Result<Vec<u8>, ZipError> {
         
-        try_io!(self.reader.seek(f.local_file_header_offset as i64, SeekSet));
-        let header = try!(format::LocalFileHeader::read(&mut self.reader));
-                
+        let header = readf;
+        
         let file_pos = f.local_file_header_offset as i64 + header.total_size() as i64;
         let file_len = header.compressed_size as usize;        
         let data = try!(self.extract_block(file_pos, file_len, header.compression_method));
