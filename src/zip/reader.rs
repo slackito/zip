@@ -146,7 +146,7 @@ impl<R:Reader+Seek> ZipReader<R> {
         let result = try_io!(result);
 
         // Check the CRC32 of the result against the one stored in the header
-        let crc = crc32::crc32(&result[]);
+        let crc = crc32::crc32(&result);
 
         if crc == h.crc32 { Ok(result) }
         else { Err(ZipError::CrcError) }
@@ -160,7 +160,7 @@ impl<R:Reader+Seek> ZipReader<R> {
     fn read_deflated_file(&mut self, pos: i64, compressed_size: u32, uncompressed_size: u32) -> IoResult<Vec<u8>> {
         try!(self.reader.seek(pos, SeekSet));
         let compressed_bytes = try!(self.reader.read_exact(compressed_size as usize));
-        let uncompressed_bytes = match flate::inflate_bytes(&compressed_bytes[]) {
+        let uncompressed_bytes = match flate::inflate_bytes(&compressed_bytes) {
             Some(bytes) => bytes,
             None => return Err(IoError { kind: InvalidInput, desc: "decompression failure", detail: None })
         };
@@ -173,7 +173,7 @@ impl<R:Reader+Seek> ZipReader<R> {
     // blocks of a fixed size from Reader to Writer
     pub fn extract<T:Writer>(&mut self, f: &FileInfo, writer: &mut T) -> Result<(), ZipError> {
         match self.read(f) {
-            Ok(bytes) => { try_io!(writer.write_all(&bytes[])); Ok(()) },
+            Ok(bytes) => { try_io!(writer.write_all(&bytes)); Ok(()) },
             Err(x) => Err(x)
         }
     }

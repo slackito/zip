@@ -219,7 +219,7 @@ impl LocalFileHeader {
         try_io!(w.write_le_u16(try!(ensure_u16_field_length(self.file_name.len()))));
         try_io!(w.write_le_u16(try!(ensure_u16_field_length(self.extra_field.len()))));
         try!(write_maybe_utf8(w, self.has_utf8_name(), self.file_name.to_slice()));
-        try_io!(w.write_all(&self.extra_field[]));
+        try_io!(w.write_all(&self.extra_field));
         Ok(())
     }
 
@@ -368,7 +368,7 @@ impl CentralDirectoryHeader {
         try_io!(w.write_le_u32(self.external_file_attributes));
         try_io!(w.write_le_u32(self.relative_offset_of_local_header));
         try!(write_maybe_utf8(w, self.has_utf8_name(), self.file_name.to_slice()));
-        try_io!(w.write_all(&self.extra_field[]));
+        try_io!(w.write_all(&self.extra_field));
         try!(write_maybe_utf8(w, self.has_utf8_name(), self.file_comment.to_slice()));
         Ok(())
     }
@@ -441,7 +441,7 @@ impl EndOfCentralDirectoryRecord {
         try_io!(w.write_le_u32(self.central_directory_size));
         try_io!(w.write_le_u32(self.central_directory_offset));
         try_io!(w.write_le_u16(try!(ensure_u16_field_length(self.comment.len()))));
-        try_io!(w.write_all(&self.comment[]));
+        try_io!(w.write_all(&self.comment));
         Ok(())
     }
 
