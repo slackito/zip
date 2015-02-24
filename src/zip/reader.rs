@@ -3,7 +3,8 @@ use std::old_io::File;
 use std::old_io::{Reader, Writer, Seek, SeekSet, SeekEnd};
 use std::iter::range_inclusive;
 use std::old_path::BytesContainer;
-use error::ZipError;
+use error::{ZipResult,ZipError};
+use format::LocalFileHeader;
 use maybe_utf8::MaybeUTF8;
 use flate;
 use crc32;
@@ -126,35 +127,34 @@ impl<R:Reader+Seek> ZipReader<R> {
         Err(ZipError::FileNotFoundInArchive)
     }
 
-    pub fn read(&mut self, f: &FileInfo) -> Result<Vec<u8>, ZipError> {
-        
+    fn read_header(&mut self, f: &FileInfo) -> ZipResult<LocalFileHeader> {
         try_io!(self.reader.seek(f.local_file_header_offset as i64, SeekSet));
-        let header = try!(format::LocalFileHeader::read(&mut self.reader));
+        format::LocalFileHeader::read(&mut self.reader)
+    }
+
+    pub fn read(&mut self, f: &FileInfo) -> Result<Vec<u8>, ZipError> {
+        let header = try!(self.read_header(f));
+        header.print();
+
                 
         let file_pos = f.local_file_header_offset as i64 + header.total_size() as i64;
         let file_len = header.compressed_size as usize;        
-        let data = try!(self.extract_block(file_pos, file_len, header.compression_method));
-
-        if  crc32::crc32(&data[]) == header.crc32 {
-            Ok(data)
-        } else {
-            Err(ZipError::CrcError) 
-        }        
+        self.extract_block(file_pos, file_len, header.compression_method, header.crc32)
     }
     
-    fn extract_block(&mut self, pos: i64, len: usize, method: u16) -> Result<Vec<u8>, ZipError> {
+    fn extract_block(&mut self, pos: i64, len: usize, method: u16, crc32: u32) -> Result<Vec<u8>, ZipError> {
         try_io!(self.reader.seek(pos, SeekSet));
-        let compressed_data = try_io!(self.reader.read_exact(len));
+        let compressed = try_io!(self.reader.read_exact(len));
         match CompressionMethod::from_u16(method) {
-                CompressionMethod::Store   => Ok(compressed_data),
-                CompressionMethod::Deflate => self.decompress(compressed_data),
+                CompressionMethod::Store   => Ok(compressed),
+                CompressionMethod::Deflate => self.decompress(compressed, crc32),
                 _ => panic!("Usupported CompressionMethod")
-        }        
+        }
     }
 
-    fn decompress(&mut self, data: Vec<u8>) -> Result<Vec<u8>, ZipError> { 
+    fn decompress(&mut self, data: Vec<u8>, crc32: u32) -> Result<Vec<u8>, ZipError> { 
         match flate::inflate_bytes(&data[]){ 
-            Some(ok) => Ok(ok.to_vec()),
+            Some(ok) => if crc32::crc32(&ok) == crc32 { Ok(ok.to_vec()) } else { Err(ZipError::CrcError) },
             None => return Err(ZipError::DecompressionFailure),
         }
     }
@@ -162,6 +162,7 @@ impl<R:Reader+Seek> ZipReader<R> {
     // when we make read return a Reader, we will be able to loop here and copy
     // blocks of a fixed size from Reader to Writer
     pub fn extract<T:Writer>(&mut self, f: &FileInfo, writer: &mut T) -> Result<(), ZipError> {
+
         match self.read(f) {
             Ok(bytes) => { try_io!(writer.write_all(&bytes[])); Ok(()) },
             Err(x) => Err(x)
