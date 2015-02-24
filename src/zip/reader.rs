@@ -22,6 +22,15 @@ pub struct RawFiles<'a, R:'a> {
     current_offset: u64,
 }
 
+// pub struct ZipExtract {
+//         pub data_offset:               i64,
+//         pub data_size:                 usize,
+//         pub compression_method:        u16,
+//         pub crc32:                     u32,
+//         pub compressed_size:           u32,
+//         pub uncompressed_size:         u32,
+// }
+
 impl<'a, R: Reader+Seek> Iterator for RawFiles<'a, R> {
     type Item = Result<FileInfo, ZipError>;
     fn next(&mut self) -> Option<Result<FileInfo, ZipError>> {
@@ -133,13 +142,12 @@ impl<R:Reader+Seek> ZipReader<R> {
     }
 
     pub fn read(&mut self, f: &FileInfo) -> Result<Vec<u8>, ZipError> {
-        let header = try!(self.read_header(f));
-        header.print();
-
-                
+        let header = try!(self.read_header(f));              
         let file_pos = f.local_file_header_offset as i64 + header.total_size() as i64;
-        let file_len = header.compressed_size as usize;        
-        self.extract_block(file_pos, file_len, header.compression_method, header.crc32)
+        let file_len = header.compressed_size as usize; 
+        let method = header.compression_method;
+        let crc32 = header.crc32;
+        self.extract_block(file_pos, file_len, method, crc32)
     }
     
     fn extract_block(&mut self, pos: i64, len: usize, method: u16, crc32: u32) -> Result<Vec<u8>, ZipError> {
@@ -159,11 +167,25 @@ impl<R:Reader+Seek> ZipReader<R> {
         }
     }
 
-    // when we make read return a Reader, we will be able to loop here and copy
-    // blocks of a fixed size from Reader to Writer
-    pub fn extract<T:Writer>(&mut self, f: &FileInfo, writer: &mut T) -> Result<(), ZipError> {
-
+    pub fn extract<T:Writer>(&mut self, f: &FileInfo, writer: &mut T) -> Result<(), ZipError> {        
         match self.read(f) {
+            Ok(bytes) => { try_io!(writer.write_all(&bytes[])); Ok(()) },
+            Err(x) => Err(x)
+        }
+    }
+
+    pub fn read_first(&mut self, f: &FileInfo, len: usize) -> Result<Vec<u8>, ZipError> {
+        let header = try!(self.read_header(f));              
+        let file_pos = f.local_file_header_offset as i64 + header.total_size() as i64;
+        let file_len = header.compressed_size as usize; 
+        let size = if len > file_len {file_len} else {len};
+        let method = header.compression_method;
+        let crc32 = header.crc32;
+        self.extract_block(file_pos, size, method, crc32)
+    }
+
+    pub fn extract_first<T:Writer>(&mut self, f: &FileInfo, writer: &mut T, len: usize) -> Result<(), ZipError> {        
+        match self.read_first(f, len) {
             Ok(bytes) => { try_io!(writer.write_all(&bytes[])); Ok(()) },
             Err(x) => Err(x)
         }
