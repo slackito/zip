@@ -2,10 +2,8 @@
 use std::old_io::File;
 use std::old_io::{Reader, Writer, Seek, SeekSet, SeekEnd};
 use std::iter::range_inclusive;
-use std::old_path::BytesContainer;
 use error::{ZipResult,ZipError};
-use format::LocalFileHeader;
-use maybe_utf8::MaybeUTF8;
+use maybe_utf8::{MaybeUtf8Slice, MaybeUtf8Buf, IntoMaybeUtf8};
 use flate;
 use crc32;
 use format;
@@ -68,8 +66,10 @@ pub struct FileNames<'a, R:'a> {
 }
 
 impl<'a, R: Reader+Seek> Iterator for FileNames<'a, R> {
-    type Item = MaybeUTF8;
-    fn next(&mut self) -> Option<MaybeUTF8> { self.base.next().map(|i| i.ok().unwrap().name) }
+    type Item = MaybeUtf8Buf;
+    fn next(&mut self) -> Option<MaybeUtf8Buf> {
+        self.base.next().map(|i| i.ok().unwrap().name)
+    }
     fn size_hint(&self) -> (usize, Option<usize>) { self.base.size_hint() }
 }
 
@@ -127,29 +127,31 @@ impl<R:Reader+Seek> ZipReader<R> {
         FileNames { base: self.files_raw() }
     }
 
-    pub fn info<T: BytesContainer>(&mut self, name: T) -> Result<FileInfo, ZipError> {
+    pub fn info<'a, T>(&mut self, name: T) -> Result<FileInfo, ZipError>
+            where T: IntoMaybeUtf8<MaybeUtf8Slice<'a>> {
+        let name = name.into_maybe_utf8();
         for i in self.files() {
-            if i.name == name.container_as_bytes() {
+            if i.name == name.as_bytes() {
                 return Ok(i);
             }
         }
         Err(ZipError::FileNotFoundInArchive)
     }
 
-    fn read_header(&mut self, f: &FileInfo) -> ZipResult<LocalFileHeader> {
+    fn read_header(&mut self, f: &FileInfo) -> ZipResult<format::LocalFileHeader> {
         try_io!(self.reader.seek(f.local_file_header_offset as i64, SeekSet));
         format::LocalFileHeader::read(&mut self.reader)
     }
 
     pub fn read(&mut self, f: &FileInfo) -> Result<Vec<u8>, ZipError> {
-        let header = try!(self.read_header(f));              
+        let header = try!(self.read_header(f));
         let file_pos = f.local_file_header_offset as i64 + header.total_size() as i64;
-        let file_len = header.compressed_size as usize; 
+        let file_len = header.compressed_size as usize;
         let method = header.compression_method;
         let crc32 = header.crc32;
         self.extract_block(file_pos, file_len, method, crc32)
     }
-    
+
     fn extract_block(&mut self, pos: i64, len: usize, method: u16, crc32: u32) -> Result<Vec<u8>, ZipError> {
         try_io!(self.reader.seek(pos, SeekSet));
         let compressed = try_io!(self.reader.read_exact(len));
@@ -160,33 +162,33 @@ impl<R:Reader+Seek> ZipReader<R> {
         }
     }
 
-    fn decompress(&mut self, data: Vec<u8>, crc32: u32) -> Result<Vec<u8>, ZipError> { 
-        match flate::inflate_bytes(&data[]){ 
+    fn decompress(&mut self, data: Vec<u8>, crc32: u32) -> Result<Vec<u8>, ZipError> {
+        match flate::inflate_bytes(&data[..]){
             Some(ok) => if crc32::crc32(&ok) == crc32 { Ok(ok.to_vec()) } else { Err(ZipError::CrcError) },
             None => return Err(ZipError::DecompressionFailure),
         }
     }
 
-    pub fn extract<T:Writer>(&mut self, f: &FileInfo, writer: &mut T) -> Result<(), ZipError> {        
+    pub fn extract_file<T:Writer>(&mut self, f: &FileInfo, writer: &mut T) -> Result<(), ZipError> {
         match self.read(f) {
-            Ok(bytes) => { try_io!(writer.write_all(&bytes[])); Ok(()) },
+            Ok(bytes) => { try_io!(writer.write_all(&bytes[..])); Ok(()) },
             Err(x) => Err(x)
         }
     }
 
     pub fn read_first(&mut self, f: &FileInfo, len: usize) -> Result<Vec<u8>, ZipError> {
-        let header = try!(self.read_header(f));              
+        let header = try!(self.read_header(f));
         let file_pos = f.local_file_header_offset as i64 + header.total_size() as i64;
-        let file_len = header.compressed_size as usize; 
+        let file_len = header.compressed_size as usize;
         let size = if len > file_len {file_len} else {len};
         let method = header.compression_method;
         let crc32 = header.crc32;
         self.extract_block(file_pos, size, method, crc32)
     }
 
-    pub fn extract_first<T:Writer>(&mut self, f: &FileInfo, writer: &mut T, len: usize) -> Result<(), ZipError> {        
+    pub fn extract_first<T:Writer>(&mut self, f: &FileInfo, writer: &mut T, len: usize) -> Result<(), ZipError> {
         match self.read_first(f, len) {
-            Ok(bytes) => { try_io!(writer.write_all(&bytes[])); Ok(()) },
+            Ok(bytes) => { try_io!(writer.write_all(&bytes[..])); Ok(()) },
             Err(x) => Err(x)
         }
     }

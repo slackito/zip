@@ -1,4 +1,4 @@
-#![feature(core, os, env, io, path)]
+#![feature(env, old_io, old_path)]
 
 extern crate zip;
 
@@ -7,8 +7,9 @@ use std::old_io::File;
 use zip::ZipReader;
 use zip::fileinfo::FileInfo;
 
-fn main() {
-    let args: Vec<_> = env::args().map(|s| s.into_string().unwrap()).collect();
+// this is public so that rustdoc doesn't complain
+pub fn main() {
+    let args: Vec<_> = env::args().collect(); // XXX
     match args.len(){
         2 => list_content(&mut zip_file(&args[1])),
         3 => extract_file(&mut zip_file(&args[1]), &args[2]),
@@ -47,7 +48,7 @@ fn list_content(reader: &mut ZipReader<File>)->(){
 fn extract_file(zip: &mut ZipReader<File>, file: &str)->(){
     let mut out = output_file(file);
     let info = zipped_file_info(zip, file);
-    do_or_die!(zip.extract(&info, &mut out));
+    do_or_die!(zip.extract_file(&info, &mut out));
 }
 
 fn print_usage(this: &str)->(){
