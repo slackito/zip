@@ -164,7 +164,7 @@ impl<R:Reader+Seek> ZipReader<R> {
 
     fn decompress(&mut self, data: Vec<u8>, crc32: u32) -> Result<Vec<u8>, ZipError> {
         match flate::inflate_bytes(&data[..]){
-            Some(ok) => if crc32::crc32(&ok) == crc32 { Ok(ok.to_vec()) } else { Err(ZipError::CrcError) },
+            Some(ok) => if crc32 == 0 || crc32::crc32(&ok) == crc32 { Ok(ok.to_vec()) } else { Err(ZipError::CrcError) },
             None => return Err(ZipError::DecompressionFailure),
         }
     }
@@ -176,14 +176,13 @@ impl<R:Reader+Seek> ZipReader<R> {
         }
     }
 
-    pub fn read_first(&mut self, f: &FileInfo, len: usize) -> Result<Vec<u8>, ZipError> {
+    pub fn read_first(&mut self, f: &FileInfo, length: usize) -> Result<Vec<u8>, ZipError> {
         let header = try!(self.read_header(f));
         let file_pos = f.local_file_header_offset as i64 + header.total_size() as i64;
         let file_len = header.compressed_size as usize;
-        let size = if len > file_len {file_len} else {len};
+	let len = if length > file_len {file_len} else {length};
         let method = header.compression_method;
-        let crc32 = header.crc32;
-        self.extract_block(file_pos, size, method, crc32)
+        self.extract_block(file_pos, len, method, 0)
     }
 
     pub fn extract_first<T:Writer>(&mut self, f: &FileInfo, writer: &mut T, len: usize) -> Result<(), ZipError> {
