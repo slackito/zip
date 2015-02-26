@@ -157,15 +157,30 @@ impl<R:Reader+Seek> ZipReader<R> {
         let compressed = try_io!(self.reader.read_exact(len));
         match CompressionMethod::from_u16(method) {
                 CompressionMethod::Store   => Ok(compressed),
-                CompressionMethod::Deflate => self.decompress(compressed, crc32),
+                CompressionMethod::Deflate => self.decompress(compressed, len, crc32),
                 _ => panic!("Usupported CompressionMethod")
         }
     }
 
-    fn decompress(&mut self, data: Vec<u8>, crc32: u32) -> Result<Vec<u8>, ZipError> {
-        match flate::inflate_bytes(&data[..]){
-            Some(ok) => if crc32 == 0 || crc32::crc32(&ok) == crc32 { Ok(ok.to_vec()) } else { Err(ZipError::CrcError) },
-            None => return Err(ZipError::DecompressionFailure),
+    fn decompress(&mut self, data: Vec<u8>, len:usize, crc32: u32) -> Result<Vec<u8>, ZipError> 
+    {
+        match flate::inflate_bytes(&data[..])
+        {
+            Some(ok) => 
+            {
+                if crc32 == 0 || crc32::crc32(&ok) == crc32 
+                {
+                    Ok(ok[0..len].to_vec())
+                }
+                else
+                {
+                    Err(ZipError::CrcError) 
+                }
+            },
+            None => 
+            {
+                return Err(ZipError::DecompressionFailure)
+            }
         }
     }
 
@@ -180,12 +195,12 @@ impl<R:Reader+Seek> ZipReader<R> {
         let header = try!(self.read_header(f));
         let file_pos = f.local_file_header_offset as i64 + header.total_size() as i64;
         let file_len = header.compressed_size as usize;
-	let len = if length > file_len {file_len} else {length};
+	    let len = if length > file_len {file_len} else {length};
         let method = header.compression_method;
         self.extract_block(file_pos, len, method, 0)
     }
 
-    pub fn extract_first<T:Writer>(&mut self, f: &FileInfo, writer: &mut T, len: usize) -> Result<(), ZipError> {
+    pub fn extract_first<T:Writer>(&mut self, f: &FileInfo, len: usize, writer: &mut T) -> Result<(), ZipError> {
         match self.read_first(f, len) {
             Ok(bytes) => { try_io!(writer.write_all(&bytes[..])); Ok(()) },
             Err(x) => Err(x)
