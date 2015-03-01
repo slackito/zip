@@ -9,6 +9,7 @@ pub enum ZipError {
     IoError(IoError),
     NotAZipFile,
     CrcError,
+    DecompressionFailure,
     FileNotFoundInArchive,
     InvalidSignature(u32),
     NonUTF8Field,
@@ -21,6 +22,7 @@ impl fmt::Display for ZipError {
             ZipError::IoError(ref e) => write!(f, "{}", e.detail.clone().unwrap_or(String::from_str(e.desc))),
             ZipError::NotAZipFile => write!(f, "not a ZIP file"),
             ZipError::CrcError => write!(f, "CRC mismatch"),
+            ZipError::DecompressionFailure => write!(f, "decompression failure"),
             ZipError::FileNotFoundInArchive => write!(f, "file not found in archive"),
             ZipError::InvalidSignature(magic) => write!(f, "invalid ZIP signature {:#08x}", magic),
             ZipError::NonUTF8Field =>

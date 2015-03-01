@@ -295,7 +295,6 @@ impl CentralDirectoryHeader {
             + self.file_comment.len()
     }
 
-
     pub fn new() -> CentralDirectoryHeader {
         CentralDirectoryHeader {
             version_made_by: 0,
