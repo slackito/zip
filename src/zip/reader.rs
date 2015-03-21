@@ -167,10 +167,8 @@ impl<R:Reader+Seek> ZipReader<R> {
 
     fn decompress(&mut self, data: Vec<u8>, len:usize, crc32: u32) -> Result<Vec<u8>, ZipError> 
     {        
-
-        //let bytes :u8 = flate::inflate_bytes(&data[..]);
         let bytes = match flate::inflate_bytes(&data[..])
-        {            
+        {
             Ok(decompressed) => decompressed,
             Err(what) => return Err(ZipError::DecompressionFailure)
         };
